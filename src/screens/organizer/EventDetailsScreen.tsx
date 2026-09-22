@@ -18,7 +18,7 @@ import {
 } from '@/services/judgeService';
 import { fetchRegistrations, subscribeToRegistrations } from '@/services/participantService';
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
-import { judgeAccessQRValue, participantRegistrationQRValue } from '@/services/qrService';
+import { judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { QRCard } from '@/components/organizer/QRCard';
@@ -202,6 +202,12 @@ function OverviewTab({ event, judgeCount, colors }: { event: EventRow; judgeCoun
       {event.max_participants ? (
         <InfoTile icon="target" label="Capacity" value={`${event.participants || 0} / ${event.max_participants}`} colors={colors} full />
       ) : null}
+
+      <QRCard
+        title="Share with Audience"
+        subtitle="Scan for a live, public view of this event's overview, leaderboard, and bracket — no login needed. Always shows real, up-to-date results."
+        value={spectatorViewQRValue(event.id)}
+      />
     </View>
   );
 }

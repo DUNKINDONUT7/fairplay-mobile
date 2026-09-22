@@ -28,3 +28,12 @@ export function participantRegistrationQRValue(eventId: number): string {
 export function judgeAccessQRValue(eventId: number): string {
   return buildAppUrl(`/judge/open/${eventId}`);
 }
+
+// Same public event page the web app links to from PublicEventNav — no
+// login required, and it reads the same live events/tournaments/scores data
+// as the organizer's own dashboards, so spectators always see accurate,
+// real-time results. Its own in-page nav links to the leaderboard and
+// bracket views too, so a single QR covers all three.
+export function spectatorViewQRValue(eventId: number): string {
+  return buildAppUrl(`/events/${eventId}`);
+}
