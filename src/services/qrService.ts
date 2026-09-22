@@ -1,0 +1,30 @@
+// Mirrors src/utils/appUrl.js `buildAppUrl()` on the web app. Mobile has no
+// window.location to fall back to, so it falls back to the same production
+// URL the web app's own Edge Functions fall back to
+// (supabase/functions/notify-judge-invite, notify-organizer-approval).
+const FALLBACK_APP_URL = 'https://fairplay-kappa.vercel.app';
+
+function baseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_APP_URL;
+  const trimmed = configured?.trim();
+  return trimmed ? trimmed.replace(/\/+$/, '') : FALLBACK_APP_URL;
+}
+
+export function buildAppUrl(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl()}${normalizedPath}`;
+}
+
+// Same destination the web Organizer's event-detail QR encodes
+// (src/pages/organizer/OrganizerEventDetail.jsx) — public route, no token,
+// so scanning it opens the same participant registration form the web app's
+// own QR opens.
+export function participantRegistrationQRValue(eventId: number): string {
+  return buildAppUrl(`/participant/register?eventId=${eventId}`);
+}
+
+// Same destination as the web Organizer's "Judge Access" QR — public route
+// keyed by eventId only (distinct from the emailed per-invite token link).
+export function judgeAccessQRValue(eventId: number): string {
+  return buildAppUrl(`/judge/open/${eventId}`);
+}
