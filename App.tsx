@@ -77,13 +77,18 @@ function AppContent() {
       };
     }
 
+    // Mirrors src/store/authStore.js `register()` on the web app: public
+    // self-registration only ever creates participant accounts. Organizer
+    // accounts are admin-only (a deliberate security boundary, not an
+    // oversight) — letting anyone self-serve an organizer account would let
+    // anyone create events, invite judges, and manage contestants.
     const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
       options: {
         data: {
           full_name: fullName.trim() || email.trim(),
-          role: 'organizer',
+          role: 'participant',
         },
       },
     });
