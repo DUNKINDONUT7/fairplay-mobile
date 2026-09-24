@@ -10,12 +10,13 @@ import { WelcomeScreen } from '@/screens/auth/WelcomeScreen';
 import { OrganizerDashboardScreen } from '@/screens/organizer/OrganizerDashboardScreen';
 import { OrganizerEventsScreen } from '@/screens/organizer/OrganizerEventsScreen';
 import { EventDetailsScreen } from '@/screens/organizer/EventDetailsScreen';
+import { ParticipantHomeScreen } from '@/screens/participant/ParticipantHomeScreen';
 import { fetchOrganizerEvents, subscribeToOrganizerEvents } from '@/services/eventService';
 import { subscribeToOrganizerActivity } from '@/services/organizerActivityService';
 import { presentLocalNotification, requestNotificationPermissions } from '@/services/notificationService';
 import type { ProfileRow } from '@/services/profileService';
 import type { ThemeColors } from '@/theme';
-import type { EventSummary } from '@/types';
+import type { EventRow } from '@/types/organizer';
 
 export type MobileDashboard = 'dashboard' | 'events';
 
@@ -73,7 +74,7 @@ export function MobileShell({
   onSignUp,
   onSignOut,
 }: {
-  events: EventSummary[];
+  events: EventRow[];
   selectedDashboard: MobileDashboard;
   onSelectDashboard?: (dashboard: MobileDashboard) => void;
   detectedUrl?: string | null;
@@ -229,6 +230,16 @@ export function MobileShell({
         onNavigateRegister={() => setAuthScreen('register')}
       />
     );
+  }
+
+  // Everything below is organizer tooling (QR management, judge invites,
+  // brackets, scoring oversight). An account that isn't an organizer/admin —
+  // e.g. a participant — gets its own screen instead of an Organizer
+  // Dashboard scoped to events it doesn't organize (which would just show
+  // all-zero stats and no events, looking broken).
+  const role = profile?.role;
+  if (role && role !== 'organizer' && role !== 'admin') {
+    return <ParticipantHomeScreen events={events} userEmail={user.email} userName={displayName} onSignOut={handleSignOut} />;
   }
 
   if (selectedEventId !== null) {

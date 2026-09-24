@@ -6,7 +6,8 @@ import { AppLogo } from '@/components/common/AppLogo';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { radius } from '@/theme';
 import type { ThemeColors } from '@/theme';
-import type { EventSummary } from '@/types';
+import { eventDisplayDate } from '@/services/eventService';
+import type { EventRow } from '@/types/organizer';
 
 type FeatherIconName = keyof typeof Feather.glyphMap;
 
@@ -36,13 +37,21 @@ export function WelcomeScreen({
   onNavigateLogin,
   onNavigateRegister,
 }: {
-  events: EventSummary[];
+  events: EventRow[];
   onNavigateLogin: () => void;
   onNavigateRegister: () => void;
 }) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  // Same "hide unpublished/finished" rule as the web app's participant
+  // pages — a draft hasn't been published by its organizer yet, and a
+  // completed event isn't "upcoming" anymore.
+  const upcomingEvents = useMemo(
+    () => events.filter((event) => event.status !== 'draft' && event.status !== 'completed'),
+    [events]
+  );
 
   return (
     <View style={styles.shell}>
@@ -104,21 +113,21 @@ export function WelcomeScreen({
 
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>Upcoming events</Text>
-          {events.length === 0 ? (
+          {upcomingEvents.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>No public events loaded yet.</Text>
             </View>
           ) : (
-            events.slice(0, 3).map((event) => (
+            upcomingEvents.slice(0, 3).map((event) => (
               <View key={String(event.id)} style={styles.eventItem}>
                 <View style={styles.eventHeader}>
                   <Text style={styles.eventTitle}>{event.title}</Text>
                   <View style={styles.eventTag}>
-                    <Text style={styles.eventTagText}>{event.eventType || 'Event'}</Text>
+                    <Text style={styles.eventTagText}>{event.type || 'Event'}</Text>
                   </View>
                 </View>
                 <Text style={styles.eventMeta}>{event.location || 'Location TBD'}</Text>
-                <Text style={styles.eventMeta}>{event.startDate || 'Date TBD'}</Text>
+                <Text style={styles.eventMeta}>{eventDisplayDate(event)}</Text>
               </View>
             ))
           )}

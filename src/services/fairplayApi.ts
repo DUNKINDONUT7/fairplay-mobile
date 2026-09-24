@@ -1,5 +1,6 @@
 import { supabase } from '@/config/supabase';
-import type { EventSummary, JudgeAssignment, JudgeInviteRow } from '@/types';
+import type { JudgeAssignment, JudgeInviteRow } from '@/types';
+import type { EventRow } from '@/types/organizer';
 
 export async function fetchMobileData() {
   if (!supabase) {
@@ -16,7 +17,11 @@ export async function fetchMobileData() {
   if (assignmentsRes.error) throw assignmentsRes.error;
   if (invitesRes.error) throw invitesRes.error;
 
-  const events = (eventsRes.data || []) as EventSummary[];
+  // Real Postgres columns are snake_case (title/type/start_date/...) — cast
+  // to EventRow, the type that already matches the schema everywhere else in
+  // this app, not the legacy camelCase EventSummary type that never matched
+  // what Supabase actually returns.
+  const events = (eventsRes.data || []) as EventRow[];
   const assignments = (assignmentsRes.data || []) as JudgeAssignment[];
   const invites = (invitesRes.data || []) as JudgeInviteRow[];
 

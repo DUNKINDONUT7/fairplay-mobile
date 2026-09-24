@@ -6,7 +6,7 @@ import { MobileShell, type MobileDashboard } from '@/components/layout/MobileShe
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { fetchMobileData, subscribeToFairplayRealtime } from '@/services/fairplayApi';
 import { fetchOwnProfile, type ProfileRow } from '@/services/profileService';
-import type { EventSummary } from '@/types';
+import type { EventRow } from '@/types/organizer';
 import { ThemeProvider, useAppTheme } from '@/contexts/ThemeContext';
 
 type MobileAuthUser = {
@@ -21,7 +21,7 @@ type MobileAuthUser = {
 
 function AppContent() {
   const { colors, colorScheme } = useAppTheme();
-  const [events, setEvents] = useState<EventSummary[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [authReady, setAuthReady] = useState(false);
   const [selectedDashboard, setSelectedDashboard] = useState<MobileDashboard>('dashboard');

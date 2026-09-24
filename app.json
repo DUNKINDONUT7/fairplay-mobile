@@ -20,6 +20,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3020453c-8e84-4670-b708-6ebddf3d118b"
+      }
+    },
+    "owner": "pawder17"
   }
 }
