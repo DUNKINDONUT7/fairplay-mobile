@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MobileShell, type MobileDashboard } from '@/components/layout/MobileShell';
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { fetchMobileData, subscribeToFairplayRealtime } from '@/services/fairplayApi';
-import { fetchOwnProfile, type ProfileRow } from '@/services/profileService';
+import { ensureParticipantProfile, fetchOwnProfile, type ProfileRow } from '@/services/profileService';
 import { buildAppUrl } from '@/services/qrService';
 import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow } from '@/types/organizer';
@@ -106,7 +106,14 @@ function AppContent() {
       setAuthUser(data.user as MobileAuthUser);
     }
 
-    if (data?.session) {
+    if (data?.session && data.user) {
+      // Belt-and-suspenders: force the profiles row to participant right
+      // after our own sign-up, in case the web app's DB trigger doesn't
+      // reliably read the role from the metadata above (see
+      // ensureParticipantProfile for why).
+      await ensureParticipantProfile(data.user.id, email.trim().toLowerCase(), fullName.trim() || email.trim());
+      await loadProfile(data.user.id);
+
       return {
         success: true,
         message: 'Your FairPlay account is ready.',

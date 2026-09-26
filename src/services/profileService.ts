@@ -22,6 +22,26 @@ export async function fetchOwnProfile(authUserId: string): Promise<ProfileRow | 
   return (data as ProfileRow) || null;
 }
 
+// Safety net for self-registered accounts still ending up with
+// profiles.role = 'organizer': App.tsx handleSignUp already sends
+// role: 'participant' in the sign-up metadata for the DB trigger
+// (handle_new_auth_user) to read, but that trigger lives outside this repo
+// (web app's Supabase project) and isn't reliably picking it up. This forces
+// the row to participant immediately after OUR OWN sign-up call succeeds —
+// it never runs on a plain sign-in, so it can never downgrade a real
+// admin-created organizer account. Upsert (not update) because the trigger
+// may not have committed the row yet. Best-effort: failure here must not
+// block the "account created" success message.
+export async function ensureParticipantProfile(authUserId: string, email: string, fullName: string): Promise<void> {
+  if (!supabase) return;
+
+  try {
+    await supabase.from('profiles').upsert({ id: authUserId, email, full_name: fullName, role: 'participant' }, { onConflict: 'id' });
+  } catch {
+    // best-effort only — the DB trigger may still succeed on its own
+  }
+}
+
 type ActionResult = { success: boolean; error?: string };
 
 // Writes to the same `profiles` row the web app reads for its own account
