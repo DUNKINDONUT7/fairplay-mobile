@@ -82,7 +82,16 @@ export async function checkInParticipant({
 }): Promise<ActionResult> {
   if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
 
+  // attendance.id is text with no default/identity (confirmed live: inserting
+  // without it fails "null value in column id violates not-null constraint"),
+  // so it must be generated client-side — same <prefix>-<timestamp>-<suffix>
+  // shape already seen on real qrToken values (e.g.
+  // "participant-1790399825129-30trumpo"), for consistency with the rest of
+  // this schema's text ids.
+  const id = `attendance-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
   const { error } = await supabase.from('attendance').insert({
+    id,
     event_id: event.id,
     attendee_id: attendeeIdFor(registration),
     attendee_name: registration.team_name || registration.participant_name,
