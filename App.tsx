@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -6,6 +6,7 @@ import { MobileShell, type MobileDashboard } from '@/components/layout/MobileShe
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { fetchMobileData, subscribeToFairplayRealtime } from '@/services/fairplayApi';
 import { fetchOwnProfile, type ProfileRow } from '@/services/profileService';
+import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow } from '@/types/organizer';
 import { ThemeProvider, useAppTheme } from '@/contexts/ThemeContext';
 
@@ -128,34 +129,29 @@ function AppContent() {
     setDetectedLink(null);
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    let unsubscribeRealtime: (() => void) | undefined;
-
-    async function load() {
-      try {
-        const data = await fetchMobileData();
-        if (!isMounted) return;
-        setEvents(data.events || []);
-      } catch (error) {
-        console.warn('Mobile fetch failed:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
+  const loadMobileData = useCallback(async () => {
+    try {
+      const data = await fetchMobileData();
+      setEvents(data.events || []);
+    } catch (error) {
+      console.warn('Mobile fetch failed:', error);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    load();
-    unsubscribeRealtime = subscribeToFairplayRealtime(() => {
-      load();
+  useEffect(() => {
+    loadMobileData();
+    const unsubscribeRealtime = subscribeToFairplayRealtime(() => {
+      loadMobileData();
     });
 
     return () => {
-      isMounted = false;
       unsubscribeRealtime?.();
     };
-  }, []);
+  }, [loadMobileData]);
+
+  useLiveRefresh(loadMobileData);
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {

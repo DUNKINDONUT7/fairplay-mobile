@@ -16,14 +16,16 @@ import {
   revokeJudgeInvite,
   subscribeToJudgeData,
 } from '@/services/judgeService';
-import { fetchRegistrations, subscribeToRegistrations } from '@/services/participantService';
+import { checkedInAt, fetchRegistrations, isCheckedIn, subscribeToRegistrations } from '@/services/participantService';
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
 import { judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { QRCard } from '@/components/organizer/QRCard';
 import { ErrorState, LoadingState, EmptyState } from '@/components/organizer/OrganizerStates';
+import { CheckInScannerScreen } from '@/screens/organizer/CheckInScannerScreen';
 import { isValidEmail } from '@/utils/validation';
+import { useLiveRefresh } from '@/utils/liveRefresh';
 import type {
   EventRow,
   JudgeAssignmentRow,
@@ -61,6 +63,7 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -111,10 +114,22 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
     };
   }, [eventId, load]);
 
+  useLiveRefresh(load);
+
   const judgeProgress = useMemo(
     () => (event ? computeJudgeProgress(event, assignments, judges, scores) : []),
     [event, assignments, judges, scores]
   );
+
+  if (scannerOpen) {
+    return (
+      <CheckInScannerScreen
+        registrations={registrations}
+        onClose={() => setScannerOpen(false)}
+        onCheckedIn={() => load()}
+      />
+    );
+  }
 
   return (
     <View style={styles.shell}>
@@ -162,7 +177,12 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
         >
           {activeTab === 'overview' && <OverviewTab event={event} judgeCount={assignments.length} colors={colors} />}
           {activeTab === 'participants' && (
-            <ParticipantsTab event={event} registrations={registrations} colors={colors} />
+            <ParticipantsTab
+              event={event}
+              registrations={registrations}
+              colors={colors}
+              onOpenScanner={() => setScannerOpen(true)}
+            />
           )}
           {activeTab === 'judges' && (
             <JudgesTab event={event} assignments={assignments} judges={judges} invites={invites} colors={colors} onChanged={() => load()} />
@@ -236,7 +256,19 @@ function InfoTile({
   );
 }
 
-function ParticipantsTab({ event, registrations, colors }: { event: EventRow; registrations: RegistrationRow[]; colors: ThemeColors }) {
+function ParticipantsTab({
+  event,
+  registrations,
+  colors,
+  onOpenScanner,
+}: {
+  event: EventRow;
+  registrations: RegistrationRow[];
+  colors: ThemeColors;
+  onOpenScanner: () => void;
+}) {
+  const checkedInCount = registrations.filter(isCheckedIn).length;
+
   return (
     <View style={{ gap: 16 }}>
       <QRCard
@@ -245,31 +277,72 @@ function ParticipantsTab({ event, registrations, colors }: { event: EventRow; re
         value={participantRegistrationQRValue(event.id)}
       />
 
+      <Pressable
+        style={[scanButtonStyle(colors)]}
+        onPress={onOpenScanner}
+        accessibilityRole="button"
+        accessibilityLabel="Scan participant QR to check in"
+      >
+        <Feather name="camera" size={16} color={colors.white} />
+        <Text style={{ color: colors.white, fontSize: 13, fontWeight: '700' }}>Scan to check in</Text>
+      </Pressable>
+
       <View>
-        <Text style={sectionTitleStyle(colors)}>{event.participants || 0} Registered</Text>
+        <View style={[rowBetween, { marginBottom: 10 }]}>
+          <Text style={sectionTitleStyle(colors)}>{event.participants || 0} Registered</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '700' }}>{checkedInCount} checked in</Text>
+        </View>
         {registrations.length === 0 ? (
           <EmptyState icon="users" title="No participants have registered for this event." />
         ) : (
-          registrations.map((registration) => (
-            <View key={registration.id} style={[sectionCardStyle(colors), { marginBottom: 10 }]}>
-              <View style={rowBetween}>
-                <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700', flex: 1 }} numberOfLines={1}>
-                  {registration.team_name || registration.participant_name}
-                </Text>
-                <StatusBadge status={registration.status} />
+          registrations.map((registration) => {
+            const checkedIn = isCheckedIn(registration);
+            return (
+              <View key={registration.id} style={[sectionCardStyle(colors), { marginBottom: 10 }]}>
+                <View style={rowBetween}>
+                  <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+                    {registration.team_name || registration.participant_name}
+                  </Text>
+                  <StatusBadge status={registration.status} />
+                </View>
+                {registration.team_name ? (
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{registration.participant_name}</Text>
+                ) : null}
+                {registration.category ? (
+                  <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>{registration.category}</Text>
+                ) : null}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                  <Feather name={checkedIn ? 'check-circle' : 'circle'} size={12} color={checkedIn ? colors.green : colors.textMuted} />
+                  <Text style={{ color: checkedIn ? colors.green : colors.textMuted, fontSize: 11, fontWeight: '700' }}>
+                    {checkedIn ? `Checked in ${formatCheckInTime(checkedInAt(registration))}` : 'Not checked in'}
+                  </Text>
+                </View>
               </View>
-              {registration.team_name ? (
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{registration.participant_name}</Text>
-              ) : null}
-              {registration.category ? (
-                <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>{registration.category}</Text>
-              ) : null}
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     </View>
   );
+}
+
+function formatCheckInTime(iso: string | null): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function scanButtonStyle(colors: ThemeColors) {
+  return {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    gap: 8,
+    backgroundColor: colors.blue,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+  };
 }
 
 function JudgesTab({

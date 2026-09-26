@@ -75,6 +75,7 @@ export type RegistrationRow = {
   status?: string | null;
   registration_type?: string | null;
   team_name?: string | null;
+  metadata?: Record<string, unknown> | null;
   created_at?: string | null;
 };
 

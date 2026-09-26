@@ -11,7 +11,8 @@ export type ProfileRow = {
 // profiles.id equals auth.users.id (uuid stored as text) — a DB trigger
 // (handle_new_auth_user) creates this row automatically on sign-up, reading
 // role from the metadata the mobile Register screen already sends
-// (App.tsx handleSignUp sets user_metadata.role = 'organizer').
+// (App.tsx handleSignUp sets user_metadata.role = 'participant' — public
+// self-registration only ever creates participant accounts).
 export async function fetchOwnProfile(authUserId: string): Promise<ProfileRow | null> {
   if (!supabase) return null;
 

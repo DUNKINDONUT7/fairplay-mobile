@@ -2,18 +2,22 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { AppLogo } from '@/components/common/AppLogo';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { radius } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate } from '@/services/eventService';
-import { fetchAllRegistrations, isMyRegistration, subscribeToAllRegistrations } from '@/services/participantService';
+import { fetchAllRegistrations, isCheckedIn, isMyRegistration, subscribeToAllRegistrations } from '@/services/participantService';
+import { participantCheckInQRValue } from '@/services/qrService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/organizer/OrganizerStates';
 import { RegisterForEventScreen } from '@/screens/participant/RegisterForEventScreen';
+import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow, RegistrationRow } from '@/types/organizer';
 
 const HIDDEN_STATUSES = new Set(['draft', 'completed', 'rejected', 'archived']);
+type HomeTab = 'events' | 'history';
 
 export function ParticipantHomeScreen({
   events,
@@ -35,6 +39,8 @@ export function ParticipantHomeScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [registeringEvent, setRegisteringEvent] = useState<EventRow | null>(null);
+  const [homeTab, setHomeTab] = useState<HomeTab>('events');
+  const [expandedRegId, setExpandedRegId] = useState<number | null>(null);
 
   const load = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -57,6 +63,8 @@ export function ParticipantHomeScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useLiveRefresh(load);
+
   const myRegistrations = useMemo(
     () => registrations.filter((registration) => isMyRegistration(registration, userEmail, userName)),
     [registrations, userEmail, userName]
@@ -70,6 +78,22 @@ export function ParticipantHomeScreen({
   );
 
   const registeredEventIds = useMemo(() => new Set(myRegistrations.map((registration) => registration.event_id)), [myRegistrations]);
+
+  // Splits registrations by whether their event has wrapped up, so a
+  // finished event doesn't keep cluttering "My Registrations" and instead
+  // shows up in History with its final status.
+  const { activeRegistrations, pastRegistrations } = useMemo(() => {
+    const active: RegistrationRow[] = [];
+    const past: RegistrationRow[] = [];
+
+    myRegistrations.forEach((registration) => {
+      const event = eventsById.get(registration.event_id);
+      const isPast = (event?.status || '').toLowerCase() === 'completed';
+      (isPast ? past : active).push(registration);
+    });
+
+    return { activeRegistrations: active, pastRegistrations: past };
+  }, [myRegistrations, eventsById]);
 
   if (registeringEvent) {
     return (
@@ -105,84 +129,179 @@ export function ParticipantHomeScreen({
           </Text>
         </View>
 
-        <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle}>My Registrations</Text>
-          {loading ? (
-            <LoadingState label="Loading your registrations..." />
-          ) : myRegistrations.length === 0 ? (
-            <EmptyState
-              icon="user-check"
-              title="No registrations yet"
-              message="Scan an event's registration QR code, or register from the FairPlay web app, to see it here."
-            />
-          ) : (
-            myRegistrations.map((registration) => {
-              const event = eventsById.get(registration.event_id);
-              return (
-                <View key={registration.id} style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {event?.title || registration.team_name || registration.participant_name}
-                    </Text>
-                    <StatusBadge status={registration.status} />
-                  </View>
-                  {registration.team_name ? <Text style={styles.cardMeta}>{registration.participant_name}</Text> : null}
-                  {event ? <Text style={styles.cardMeta}>{eventDisplayDate(event)}</Text> : null}
-                </View>
-              );
-            })
-          )}
+        <View style={styles.tabRow}>
+          {(
+            [
+              { key: 'events' as const, label: 'Events' },
+              { key: 'history' as const, label: 'History' },
+            ]
+          ).map((tab) => {
+            const active = homeTab === tab.key;
+            return (
+              <Pressable
+                key={tab.key}
+                onPress={() => setHomeTab(tab.key)}
+                style={[
+                  styles.tabChip,
+                  { borderColor: colors.border },
+                  active && { backgroundColor: colors.blueLight, borderColor: colors.borderActive },
+                ]}
+              >
+                <Text style={[styles.tabChipText, { color: active ? colors.blue : colors.textSecondary }]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <View style={styles.sectionWrap}>
-          <Text style={styles.sectionTitle}>Browse Events</Text>
-          {error ? (
-            <ErrorState message={error} onRetry={() => load()} />
-          ) : browseEvents.length === 0 ? (
-            <EmptyState icon="calendar" title="No open events right now" message="Check back soon for new events from FairPlay organizers." />
-          ) : (
-            browseEvents.map((event) => {
-              const isRegistered = registeredEventIds.has(event.id);
-              const isFull = Boolean(event.max_participants) && (event.participants || 0) >= (event.max_participants || 0);
+        {homeTab === 'events' ? (
+          <>
+            <View style={styles.sectionWrap}>
+              <Text style={styles.sectionTitle}>My Registrations</Text>
+              {loading ? (
+                <LoadingState label="Loading your registrations..." />
+              ) : activeRegistrations.length === 0 ? (
+                <EmptyState
+                  icon="user-check"
+                  title="No registrations yet"
+                  message="Scan an event's registration QR code, or register from the FairPlay web app, to see it here."
+                />
+              ) : (
+                activeRegistrations.map((registration) => {
+                  const event = eventsById.get(registration.event_id);
+                  const expanded = expandedRegId === registration.id;
+                  return (
+                    <View key={registration.id} style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {event?.title || registration.team_name || registration.participant_name}
+                        </Text>
+                        <StatusBadge status={registration.status} />
+                      </View>
+                      {registration.team_name ? <Text style={styles.cardMeta}>{registration.participant_name}</Text> : null}
+                      {event ? <Text style={styles.cardMeta}>{eventDisplayDate(event)}</Text> : null}
 
-              return (
-                <View key={event.id} style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>
-                      {event.title}
-                    </Text>
-                    <StatusBadge status={event.status} />
-                  </View>
-                  {event.type ? <Text style={styles.cardType}>{event.type}</Text> : null}
-                  <Text style={styles.cardMeta}>{eventDisplayDate(event)}</Text>
-                  {event.location ? (
-                    <View style={styles.metaRow}>
-                      <Feather name="map-pin" size={11} color={colors.textMuted} />
-                      <Text style={styles.metaRowText}>{event.location}</Text>
-                    </View>
-                  ) : null}
+                      <Pressable
+                        onPress={() => setExpandedRegId(expanded ? null : registration.id)}
+                        style={styles.qrToggle}
+                        accessibilityRole="button"
+                        accessibilityLabel={expanded ? 'Hide check-in QR code' : 'Show check-in QR code'}
+                      >
+                        <Feather name="maximize" size={12} color={colors.blue} />
+                        <Text style={[styles.qrToggleText, { color: colors.blue }]}>
+                          {expanded ? 'Hide check-in QR' : 'Show check-in QR'}
+                        </Text>
+                      </Pressable>
 
-                  {isRegistered ? (
-                    <View style={[styles.registeredPill, { backgroundColor: colors.greenLight }]}>
-                      <Feather name="check-circle" size={12} color={colors.green} />
-                      <Text style={[styles.registeredPillText, { color: colors.green }]}>Registered</Text>
+                      {expanded ? (
+                        <View style={styles.qrWrap}>
+                          <View style={[styles.qrCard, { backgroundColor: colors.white }]}>
+                            <QRCode value={participantCheckInQRValue(registration.id)} size={140} backgroundColor={colors.white} color="#0F172A" />
+                          </View>
+                          <Text style={[styles.qrHint, { color: colors.textSecondary }]}>
+                            {isCheckedIn(registration)
+                              ? "You're checked in for this event."
+                              : 'Show this to event staff to check in on-site.'}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
-                  ) : (
-                    <Pressable
-                      style={[styles.registerButton, { backgroundColor: colors.blue }, isFull && { opacity: 0.5 }]}
-                      onPress={() => !isFull && setRegisteringEvent(event)}
-                      disabled={isFull}
-                      accessibilityRole="button"
+                  );
+                })
+              )}
+            </View>
+
+            <View style={styles.sectionWrap}>
+              <Text style={styles.sectionTitle}>Browse Events</Text>
+              {error ? (
+                <ErrorState message={error} onRetry={() => load()} />
+              ) : browseEvents.length === 0 ? (
+                <EmptyState icon="calendar" title="No open events right now" message="Check back soon for new events from FairPlay organizers." />
+              ) : (
+                browseEvents.map((event) => {
+                  const isRegistered = registeredEventIds.has(event.id);
+                  const isFull = Boolean(event.max_participants) && (event.participants || 0) >= (event.max_participants || 0);
+
+                  return (
+                    <View key={event.id} style={styles.card}>
+                      <View style={styles.cardHeader}>
+                        <Text style={styles.cardTitle} numberOfLines={1}>
+                          {event.title}
+                        </Text>
+                        <StatusBadge status={event.status} />
+                      </View>
+                      {event.type ? <Text style={styles.cardType}>{event.type}</Text> : null}
+                      <Text style={styles.cardMeta}>{eventDisplayDate(event)}</Text>
+                      {event.location ? (
+                        <View style={styles.metaRow}>
+                          <Feather name="map-pin" size={11} color={colors.textMuted} />
+                          <Text style={styles.metaRowText}>{event.location}</Text>
+                        </View>
+                      ) : null}
+
+                      {isRegistered ? (
+                        <View style={[styles.registeredPill, { backgroundColor: colors.greenLight }]}>
+                          <Feather name="check-circle" size={12} color={colors.green} />
+                          <Text style={[styles.registeredPillText, { color: colors.green }]}>Registered</Text>
+                        </View>
+                      ) : (
+                        <Pressable
+                          style={[styles.registerButton, { backgroundColor: colors.blue }, isFull && { opacity: 0.5 }]}
+                          onPress={() => !isFull && setRegisteringEvent(event)}
+                          disabled={isFull}
+                          accessibilityRole="button"
                       accessibilityLabel={`Register for ${event.title}`}
                     >
                       <Text style={styles.registerButtonText}>{isFull ? 'Event full' : 'Register'}</Text>
-                    </Pressable>
-                  )}
-                </View>
-              );
-            })
-          )}
-        </View>
+                        </Pressable>
+                      )}
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          </>
+        ) : (
+          <View style={styles.sectionWrap}>
+            <Text style={styles.sectionTitle}>History</Text>
+            {loading ? (
+              <LoadingState label="Loading your history..." />
+            ) : pastRegistrations.length === 0 ? (
+              <EmptyState icon="clock" title="No past events yet" message="Events you've registered for will show up here once they're completed." />
+            ) : (
+              pastRegistrations.map((registration) => {
+                const event = eventsById.get(registration.event_id);
+                return (
+                  <View key={registration.id} style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>
+                        {event?.title || registration.team_name || registration.participant_name}
+                      </Text>
+                      <StatusBadge status={registration.status} />
+                    </View>
+                    {registration.team_name ? <Text style={styles.cardMeta}>{registration.participant_name}</Text> : null}
+                    {event ? <Text style={styles.cardMeta}>{eventDisplayDate(event)}</Text> : null}
+                    {event?.location ? (
+                      <View style={styles.metaRow}>
+                        <Feather name="map-pin" size={11} color={colors.textMuted} />
+                        <Text style={styles.metaRowText}>{event.location}</Text>
+                      </View>
+                    ) : null}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                      <Feather
+                        name={isCheckedIn(registration) ? 'check-circle' : 'circle'}
+                        size={12}
+                        color={isCheckedIn(registration) ? colors.green : colors.textMuted}
+                      />
+                      <Text style={{ color: isCheckedIn(registration) ? colors.green : colors.textMuted, fontSize: 11, fontWeight: '700' }}>
+                        {isCheckedIn(registration) ? 'Attended (checked in)' : 'Not checked in'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -219,6 +338,46 @@ const createStyles = (colors: ThemeColors) =>
       width: '100%',
       maxWidth: 600,
       alignSelf: 'center',
+    },
+    tabRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 18,
+    },
+    tabChip: {
+      borderWidth: 1,
+      borderRadius: radius.full,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    tabChipText: {
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    qrToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 10,
+      alignSelf: 'flex-start',
+    },
+    qrToggleText: {
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    qrWrap: {
+      alignItems: 'center',
+      marginTop: 12,
+      gap: 8,
+    },
+    qrCard: {
+      padding: 12,
+      borderRadius: radius.lg,
+    },
+    qrHint: {
+      fontSize: 11,
+      textAlign: 'center',
+      lineHeight: 16,
     },
     heroCard: {
       backgroundColor: colors.surface,

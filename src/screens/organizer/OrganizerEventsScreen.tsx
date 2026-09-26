@@ -7,6 +7,7 @@ import type { ThemeColors } from '@/theme';
 import { eventDisplayDate, fetchOrganizerEvents, subscribeToOrganizerEvents } from '@/services/eventService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { ErrorState, LoadingState, EmptyState } from '@/components/organizer/OrganizerStates';
+import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow } from '@/types/organizer';
 
 type StatusFilter = 'all' | 'active' | 'upcoming' | 'completed' | 'draft';
@@ -61,6 +62,8 @@ export function OrganizerEventsScreen({
     const unsubscribe = subscribeToOrganizerEvents(() => load());
     return unsubscribe;
   }, [load]);
+
+  useLiveRefresh(load);
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();

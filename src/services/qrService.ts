@@ -29,6 +29,21 @@ export function judgeAccessQRValue(eventId: number): string {
   return buildAppUrl(`/judge/open/${eventId}`);
 }
 
+// Identifies an already-submitted registration for in-app, on-site attendance
+// check-in — scanned by an organizer/judge's camera inside the app, not opened
+// in a browser, so unlike the other QR values here this is a plain token
+// rather than a web URL.
+export function participantCheckInQRValue(registrationId: number): string {
+  return `fairplay-checkin:${registrationId}`;
+}
+
+export function parseCheckInQRValue(value: string): number | null {
+  const match = /^fairplay-checkin:(\d+)$/.exec(value.trim());
+  if (!match) return null;
+  const id = Number(match[1]);
+  return Number.isFinite(id) ? id : null;
+}
+
 // Same public event page the web app links to from PublicEventNav — no
 // login required, and it reads the same live events/tournaments/scores data
 // as the organizer's own dashboards, so spectators always see accurate,

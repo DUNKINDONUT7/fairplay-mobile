@@ -233,12 +233,15 @@ export function MobileShell({
   }
 
   // Everything below is organizer tooling (QR management, judge invites,
-  // brackets, scoring oversight). An account that isn't an organizer/admin —
-  // e.g. a participant — gets its own screen instead of an Organizer
-  // Dashboard scoped to events it doesn't organize (which would just show
-  // all-zero stats and no events, looking broken).
+  // brackets, scoring oversight). Only a CONFIRMED organizer/admin profile
+  // sees it — default to the participant screen otherwise, since `profile`
+  // is briefly null right after sign-up (before its row loads) and a new
+  // self-registered account (always role: 'participant', see App.tsx
+  // handleSignUp) must never flash the Organizer Dashboard while that load
+  // is in flight.
   const role = profile?.role;
-  if (role && role !== 'organizer' && role !== 'admin') {
+  const isOrganizerOrAdmin = role === 'organizer' || role === 'admin';
+  if (!isOrganizerOrAdmin) {
     return <ParticipantHomeScreen events={events} userEmail={user.email} userName={displayName} onSignOut={handleSignOut} />;
   }
 

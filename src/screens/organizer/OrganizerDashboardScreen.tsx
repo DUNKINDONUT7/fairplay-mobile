@@ -8,6 +8,7 @@ import type { ThemeColors } from '@/theme';
 import { eventDisplayDate, fetchOrganizerEvents, subscribeToOrganizerEvents } from '@/services/eventService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { ErrorState, LoadingState, EmptyState } from '@/components/organizer/OrganizerStates';
+import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow } from '@/types/organizer';
 
 type FeatherIconName = keyof typeof Feather.glyphMap;
@@ -59,6 +60,8 @@ export function OrganizerDashboardScreen({
     const unsubscribe = subscribeToOrganizerEvents(() => load());
     return unsubscribe;
   }, [load]);
+
+  useLiveRefresh(load);
 
   const stats = useMemo(() => {
     const upcoming = events.filter((event) => (event.status || '').toLowerCase() === 'upcoming').length;
