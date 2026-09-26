@@ -217,6 +217,12 @@ function AppContent() {
     };
   }, []);
 
+  const loadProfile = useCallback((userId: string) => {
+    return fetchOwnProfile(userId)
+      .then((row) => setProfile(row))
+      .catch(() => setProfile(null));
+  }, []);
+
   useEffect(() => {
     if (!authUser?.id) {
       setProfile(null);
@@ -224,7 +230,6 @@ function AppContent() {
     }
 
     let isMounted = true;
-
     fetchOwnProfile(authUser.id)
       .then((row) => {
         if (isMounted) setProfile(row);
@@ -237,6 +242,13 @@ function AppContent() {
       isMounted = false;
     };
   }, [authUser?.id]);
+
+  // Lets ProfileScreen (via MobileShell) pull the freshly-saved row back into
+  // this shared `profile` state after an edit, instead of the app showing a
+  // stale full_name until the next sign-in.
+  const handleProfileUpdated = useCallback(() => {
+    if (authUser?.id) loadProfile(authUser.id);
+  }, [authUser?.id, loadProfile]);
 
   useEffect(() => {
     const handleUrl = (event: { url: string }) => {
@@ -284,6 +296,7 @@ function AppContent() {
         onSignUp={handleSignUp}
         onSignOut={handleSignOut}
         onResetPassword={handleResetPassword}
+        onProfileUpdated={handleProfileUpdated}
       />
     </SafeAreaView>
   );

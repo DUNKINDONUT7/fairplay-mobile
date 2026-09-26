@@ -26,6 +26,9 @@
         "projectId": "3020453c-8e84-4670-b708-6ebddf3d118b"
       }
     },
-    "owner": "pawder17"
+    "owner": "pawder17",
+    "plugins": [
+      "expo-sharing"
+    ]
   }
 }

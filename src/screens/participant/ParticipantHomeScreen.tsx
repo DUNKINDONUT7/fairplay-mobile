@@ -13,6 +13,8 @@ import { participantCheckInQRValue } from '@/services/qrService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/organizer/OrganizerStates';
 import { RegisterForEventScreen } from '@/screens/participant/RegisterForEventScreen';
+import { ProfileScreen } from '@/screens/participant/ProfileScreen';
+import type { ProfileRow } from '@/services/profileService';
 import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow, RegistrationRow } from '@/types/organizer';
 
@@ -21,14 +23,20 @@ type HomeTab = 'events' | 'history';
 
 export function ParticipantHomeScreen({
   events,
+  authUserId,
   userEmail,
   userName,
+  profile,
   onSignOut,
+  onProfileUpdated,
 }: {
   events: EventRow[];
+  authUserId: string;
   userEmail?: string | null;
   userName?: string | null;
+  profile?: ProfileRow | null;
   onSignOut?: () => Promise<void> | void;
+  onProfileUpdated?: () => void;
 }) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -41,6 +49,7 @@ export function ParticipantHomeScreen({
   const [registeringEvent, setRegisteringEvent] = useState<EventRow | null>(null);
   const [homeTab, setHomeTab] = useState<HomeTab>('events');
   const [expandedRegId, setExpandedRegId] = useState<number | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   const load = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -107,13 +116,30 @@ export function ParticipantHomeScreen({
     );
   }
 
+  if (showProfile) {
+    return (
+      <ProfileScreen
+        authUserId={authUserId}
+        email={userEmail}
+        profile={profile ?? null}
+        onBack={() => setShowProfile(false)}
+        onSaved={() => onProfileUpdated?.()}
+      />
+    );
+  }
+
   return (
     <View style={styles.shell}>
       <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
         <AppLogo width={97} />
-        <Pressable style={styles.iconButton} onPress={() => onSignOut?.()} accessibilityRole="button" accessibilityLabel="Sign out">
-          <Feather name="log-out" size={18} color={colors.textPrimary} />
-        </Pressable>
+        <View style={styles.topActions}>
+          <Pressable style={styles.iconButton} onPress={() => setShowProfile(true)} accessibilityRole="button" accessibilityLabel="My profile">
+            <Feather name="user" size={18} color={colors.textPrimary} />
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={() => onSignOut?.()} accessibilityRole="button" accessibilityLabel="Sign out">
+            <Feather name="log-out" size={18} color={colors.textPrimary} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -322,6 +348,10 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+    },
+    topActions: {
+      flexDirection: 'row',
+      gap: 8,
     },
     iconButton: {
       width: 38,

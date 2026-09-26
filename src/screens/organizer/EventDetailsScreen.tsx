@@ -20,6 +20,7 @@ import { checkedInAt, fetchRegistrations, isCheckedIn, subscribeToRegistrations 
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
 import { judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
+import { exportEventResults } from '@/services/resultsExportService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { QRCard } from '@/components/organizer/QRCard';
 import { ErrorState, LoadingState, EmptyState } from '@/components/organizer/OrganizerStates';
@@ -64,6 +65,7 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(
     async (isRefresh = false) => {
@@ -121,6 +123,17 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
     [event, assignments, judges, scores]
   );
 
+  const handleExportResults = async () => {
+    if (!event || exporting) return;
+    setExporting(true);
+    const result = await exportEventResults({ event, tournaments, scores });
+    setExporting(false);
+
+    if (!result.success) {
+      Alert.alert('Export failed', result.error || 'Unable to export results. Please try again.');
+    }
+  };
+
   if (scannerOpen) {
     return (
       <CheckInScannerScreen
@@ -146,7 +159,16 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
         <Text style={styles.topBarTitle} numberOfLines={1}>
           {event?.title || 'Event details'}
         </Text>
-        <View style={{ width: 38 }} />
+        <Pressable
+          onPress={handleExportResults}
+          disabled={exporting || !event}
+          style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Export event results"
+        >
+          {exporting ? <ActivityIndicator size="small" color={colors.blue} /> : <Feather name="share" size={16} color={colors.textPrimary} />}
+        </Pressable>
       </View>
 
       <View style={styles.tabRow}>

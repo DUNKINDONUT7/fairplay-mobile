@@ -77,6 +77,7 @@ export function MobileShell({
   onSignUp,
   onSignOut,
   onResetPassword,
+  onProfileUpdated,
 }: {
   events: EventRow[];
   selectedDashboard: MobileDashboard;
@@ -101,6 +102,7 @@ export function MobileShell({
   }) => Promise<{ success: boolean; error?: string; message?: string }>;
   onSignOut?: () => Promise<void> | void;
   onResetPassword?: (email: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  onProfileUpdated?: () => void;
 }) {
   const { colors: COLORS } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -311,7 +313,17 @@ export function MobileShell({
   const role = profile?.role;
   const isOrganizerOrAdmin = role === 'organizer' || role === 'admin';
   if (!isOrganizerOrAdmin) {
-    return <ParticipantHomeScreen events={events} userEmail={user.email} userName={displayName} onSignOut={handleSignOut} />;
+    return (
+      <ParticipantHomeScreen
+        events={events}
+        authUserId={user.id}
+        userEmail={user.email}
+        userName={displayName}
+        profile={profile ?? null}
+        onSignOut={handleSignOut}
+        onProfileUpdated={onProfileUpdated}
+      />
+    );
   }
 
   if (selectedEventId !== null) {
