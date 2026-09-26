@@ -23,6 +23,17 @@ export function participantRegistrationQRValue(eventId: number): string {
   return buildAppUrl(`/participant/register?eventId=${eventId}`);
 }
 
+// Recovers the eventId from a scanned participantRegistrationQRValue — used
+// by the pre-login "Scan QR" flow, which needs the id before the app can look
+// the event up. Matched by path + query rather than a fixed host, since the
+// scanned code could point at production or a different EXPO_PUBLIC_APP_URL.
+export function parseParticipantRegistrationQRValue(value: string): number | null {
+  const match = /\/participant\/register\?[^\s]*\beventId=(\d+)/.exec(value.trim());
+  if (!match) return null;
+  const id = Number(match[1]);
+  return Number.isFinite(id) ? id : null;
+}
+
 // Same destination as the web Organizer's "Judge Access" QR — public route
 // keyed by eventId only (distinct from the emailed per-invite token link).
 export function judgeAccessQRValue(eventId: number): string {

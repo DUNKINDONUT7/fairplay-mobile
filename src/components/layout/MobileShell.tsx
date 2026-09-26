@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppLogo } from '@/components/common/AppLogo';
@@ -7,6 +7,7 @@ import { useAppTheme } from '@/contexts/ThemeContext';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { RegisterScreen } from '@/screens/auth/RegisterScreen';
 import { WelcomeScreen } from '@/screens/auth/WelcomeScreen';
+import { ScanEventQRScreen } from '@/screens/auth/ScanEventQRScreen';
 import { OrganizerDashboardScreen } from '@/screens/organizer/OrganizerDashboardScreen';
 import { OrganizerEventsScreen } from '@/screens/organizer/OrganizerEventsScreen';
 import { EventDetailsScreen } from '@/screens/organizer/EventDetailsScreen';
@@ -14,6 +15,7 @@ import { ParticipantHomeScreen } from '@/screens/participant/ParticipantHomeScre
 import { fetchOrganizerEvents, subscribeToOrganizerEvents } from '@/services/eventService';
 import { subscribeToOrganizerActivity } from '@/services/organizerActivityService';
 import { presentLocalNotification, requestNotificationPermissions } from '@/services/notificationService';
+import { registerForEvent } from '@/services/participantService';
 import type { ProfileRow } from '@/services/profileService';
 import type { ThemeColors } from '@/theme';
 import type { EventRow } from '@/types/organizer';
@@ -116,6 +118,8 @@ export function MobileShell({
   const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register'>('welcome');
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [organizerEventIds, setOrganizerEventIds] = useState<Set<number>>(new Set());
+  const [scanningEventQR, setScanningEventQR] = useState(false);
+  const [pendingEvent, setPendingEvent] = useState<EventRow | null>(null);
 
   // Tracks the organizer's own event ids (lightweight, id-only concern) so
   // realtime activity for OTHER organizers' events never triggers a
@@ -164,6 +168,33 @@ export function MobileShell({
     profile?.full_name ||
     (user?.email ? user.email.split('@')[0] : 'FairPlay Organizer');
 
+  // Completes the "scan QR -> sign in -> auto-register" flow: once a scanned
+  // event is pending and the sign-in/sign-up just above resolved into a real
+  // user, register for it immediately instead of making them fill the
+  // registration form again for an event they already scanned. The ref guard
+  // (rather than a cleanup flag) ensures exactly one registerForEvent call
+  // per scanned event even if effects double-fire.
+  const autoRegisteringEventIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!user?.id || !pendingEvent) return;
+    if (autoRegisteringEventIdRef.current === pendingEvent.id) return;
+    autoRegisteringEventIdRef.current = pendingEvent.id;
+
+    const event = pendingEvent;
+    registerForEvent({ event, participantName: displayName, email: user.email || '' }).then((result) => {
+      autoRegisteringEventIdRef.current = null;
+      setPendingEvent(null);
+      Alert.alert(
+        result.success ? "You're registered!" : 'Registration incomplete',
+        result.success
+          ? `You're registered for ${event.title}.`
+          : result.error || `Unable to register you for ${event.title} automatically. Open the event to register manually.`
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, pendingEvent]);
+
   const sendChatMessage = () => {
     const trimmed = chatInput.trim();
     if (!trimmed) return;
@@ -201,13 +232,35 @@ export function MobileShell({
   const BrandMark = ({ compact = false }: { compact?: boolean }) => <AppLogo width={compact ? 81 : 106} />;
 
   if (!user) {
+    if (scanningEventQR) {
+      return (
+        <ScanEventQRScreen
+          events={events}
+          onClose={() => setScanningEventQR(false)}
+          onScanned={(event) => {
+            setPendingEvent(event);
+            setScanningEventQR(false);
+            setAuthScreen('login');
+          }}
+        />
+      );
+    }
+
+    const pendingNotice = pendingEvent ? `Sign in to complete your registration for "${pendingEvent.title}".` : undefined;
+
+    const cancelPendingEvent = () => {
+      setPendingEvent(null);
+      setAuthScreen('welcome');
+    };
+
     if (authScreen === 'login') {
       return (
         <LoginScreen
           authConfigured={authConfigured}
           onSignIn={onSignIn}
           onNavigateRegister={() => setAuthScreen('register')}
-          onNavigateBack={() => setAuthScreen('welcome')}
+          onNavigateBack={cancelPendingEvent}
+          noticeMessage={pendingNotice}
         />
       );
     }
@@ -218,7 +271,8 @@ export function MobileShell({
           authConfigured={authConfigured}
           onSignUp={onSignUp}
           onNavigateLogin={() => setAuthScreen('login')}
-          onNavigateBack={() => setAuthScreen('welcome')}
+          onNavigateBack={cancelPendingEvent}
+          noticeMessage={pendingNotice}
         />
       );
     }
@@ -228,6 +282,7 @@ export function MobileShell({
         events={events}
         onNavigateLogin={() => setAuthScreen('login')}
         onNavigateRegister={() => setAuthScreen('register')}
+        onScanQR={() => setScanningEventQR(true)}
       />
     );
   }

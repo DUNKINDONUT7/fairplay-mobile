@@ -36,10 +36,12 @@ export function WelcomeScreen({
   events,
   onNavigateLogin,
   onNavigateRegister,
+  onScanQR,
 }: {
   events: EventRow[];
   onNavigateLogin: () => void;
   onNavigateRegister: () => void;
+  onScanQR?: () => void;
 }) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -57,10 +59,15 @@ export function WelcomeScreen({
     <View style={styles.shell}>
       <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
         <AppLogo width={97} />
-        <View style={styles.scanButtonDisabled}>
-          <Feather name="camera" size={14} color={colors.textMuted} />
-          <Text style={styles.scanTextDisabled}>Scan QR</Text>
-        </View>
+        <Pressable
+          style={styles.scanButton}
+          onPress={onScanQR}
+          accessibilityRole="button"
+          accessibilityLabel="Scan an event's registration QR code"
+        >
+          <Feather name="camera" size={14} color={colors.blue} />
+          <Text style={styles.scanText}>Scan QR</Text>
+        </Pressable>
       </View>
 
       <ScrollView
@@ -153,18 +160,19 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    scanButtonDisabled: {
+    scanButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
       borderRadius: radius.full,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.borderActive,
+      backgroundColor: colors.blueLight,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    scanTextDisabled: {
-      color: colors.textMuted,
+    scanText: {
+      color: colors.blue,
       fontSize: 12,
       fontWeight: '700',
     },

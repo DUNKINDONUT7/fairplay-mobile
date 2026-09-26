@@ -17,11 +17,13 @@ export function LoginScreen({
   onSignIn,
   onNavigateRegister,
   onNavigateBack,
+  noticeMessage,
 }: {
   authConfigured?: boolean;
   onSignIn?: (email: string, password: string) => Promise<AuthResult>;
   onNavigateRegister: () => void;
   onNavigateBack?: () => void;
+  noticeMessage?: string;
 }) {
   const { colors } = useAppTheme();
   const [email, setEmail] = useState('');
@@ -61,6 +63,13 @@ export function LoginScreen({
   return (
     <AuthContainer onBack={onNavigateBack}>
       <AuthHeader title="Welcome Back" subtitle="Sign in to continue to your account." />
+
+      {noticeMessage ? (
+        <View style={[styles.banner, { backgroundColor: colors.blueLight, borderColor: 'rgba(37, 99, 235, 0.4)' }]}>
+          <Feather name="info" size={14} color={colors.blue} />
+          <Text style={[styles.bannerText, { color: colors.textPrimary }]}>{noticeMessage}</Text>
+        </View>
+      ) : null}
 
       {!authConfigured ? (
         <View style={[styles.banner, { backgroundColor: colors.amberLight, borderColor: 'rgba(245, 158, 11, 0.4)' }]}>

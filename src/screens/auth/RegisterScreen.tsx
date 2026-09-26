@@ -24,11 +24,13 @@ export function RegisterScreen({
   onSignUp,
   onNavigateLogin,
   onNavigateBack,
+  noticeMessage,
 }: {
   authConfigured?: boolean;
   onSignUp?: (payload: { fullName: string; email: string; password: string }) => Promise<AuthResult>;
   onNavigateLogin: () => void;
   onNavigateBack?: () => void;
+  noticeMessage?: string;
 }) {
   const { colors } = useAppTheme();
   const [fullName, setFullName] = useState('');
@@ -86,6 +88,13 @@ export function RegisterScreen({
   return (
     <AuthContainer onBack={onNavigateBack}>
       <AuthHeader title="Create Account" subtitle="Create your account to get started." />
+
+      {noticeMessage ? (
+        <View style={[styles.banner, { backgroundColor: colors.blueLight, borderColor: 'rgba(37, 99, 235, 0.4)' }]}>
+          <Feather name="info" size={14} color={colors.blue} />
+          <Text style={[styles.bannerText, { color: colors.textPrimary }]}>{noticeMessage}</Text>
+        </View>
+      ) : null}
 
       {!authConfigured ? (
         <View style={[styles.banner, { backgroundColor: colors.amberLight, borderColor: 'rgba(245, 158, 11, 0.4)' }]}>
