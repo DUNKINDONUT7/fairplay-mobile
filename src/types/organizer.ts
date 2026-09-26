@@ -75,8 +75,32 @@ export type RegistrationRow = {
   status?: string | null;
   registration_type?: string | null;
   team_name?: string | null;
+  // qrToken here is the actual value embedded in the participant's
+  // check-in QR code (set at registration time) — the `attendance` table's
+  // `qr_token` column is matched against this, not against `registrations.id`.
+  individual_details?: { name?: string; email?: string; phone?: string; qrToken?: string } | null;
   metadata?: Record<string, unknown> | null;
   created_at?: string | null;
+};
+
+// Confirmed against the live Supabase schema (public.attendance) via the
+// REST API's column-probing, since this table isn't in this repo. `role`
+// distinguishes participant/judge attendees sharing one table; `attendee_id`
+// is text, matching the same contestant-id string scheme used for
+// scores.contestant_id (see metadata.participantId in participantService.ts)
+// rather than a numeric FK to registrations.id.
+export type AttendanceRow = {
+  id: string;
+  event_id: number;
+  sub_event_id?: string | null;
+  attendee_id: string;
+  attendee_name?: string | null;
+  role?: string | null;
+  checked_in_at?: string | null;
+  qr_token?: string | null;
+  source?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 export type ScoreRow = {

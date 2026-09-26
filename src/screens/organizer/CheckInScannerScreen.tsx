@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { QRScannerShell, qrScannerFooterStyles as styles } from '@/components/common/QRScannerShell';
-import { parseCheckInQRValue } from '@/services/qrService';
-import { checkInRegistration, isCheckedIn } from '@/services/participantService';
-import type { RegistrationRow } from '@/types/organizer';
+import { checkInParticipant, findRegistrationByQrToken, isCheckedIn } from '@/services/attendanceService';
+import type { AttendanceRow, EventRow, RegistrationRow } from '@/types/organizer';
 
 type Feedback = { tone: 'green' | 'amber' | 'red'; text: string };
 
 export function CheckInScannerScreen({
+  event,
   registrations,
+  attendanceRows,
   onClose,
   onCheckedIn,
 }: {
+  event: EventRow;
   registrations: RegistrationRow[];
+  attendanceRows: AttendanceRow[];
   onClose: () => void;
   onCheckedIn: () => void;
 }) {
@@ -27,22 +30,22 @@ export function CheckInScannerScreen({
     setScanning(false);
     setBusy(true);
 
-    const registrationId = parseCheckInQRValue(data);
-    const registration = registrationId != null ? registrations.find((row) => row.id === registrationId) : undefined;
+    const qrToken = data.trim();
+    const registration = findRegistrationByQrToken(qrToken, registrations);
 
     if (!registration) {
       setBusy(false);
-      setFeedback({ tone: 'red', text: 'This QR code is not a valid check-in pass for this event.' });
+      setFeedback({ tone: 'red', text: `Not a valid check-in pass for this event. Scanned: "${qrToken}"` });
       return;
     }
 
-    if (isCheckedIn(registration)) {
+    if (isCheckedIn(registration, attendanceRows)) {
       setBusy(false);
       setFeedback({ tone: 'amber', text: `${registration.participant_name} is already checked in.` });
       return;
     }
 
-    const result = await checkInRegistration(registration);
+    const result = await checkInParticipant({ event, registration, qrToken });
     setBusy(false);
 
     if (result.success) {

@@ -16,7 +16,8 @@ import {
   revokeJudgeInvite,
   subscribeToJudgeData,
 } from '@/services/judgeService';
-import { checkedInAt, fetchRegistrations, isCheckedIn, subscribeToRegistrations } from '@/services/participantService';
+import { fetchRegistrations, subscribeToRegistrations } from '@/services/participantService';
+import { checkedInAt, fetchAttendanceForEvent, isCheckedIn, subscribeToAttendance } from '@/services/attendanceService';
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
 import { judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
@@ -28,6 +29,7 @@ import { CheckInScannerScreen } from '@/screens/organizer/CheckInScannerScreen';
 import { isValidEmail } from '@/utils/validation';
 import { useLiveRefresh } from '@/utils/liveRefresh';
 import type {
+  AttendanceRow,
   EventRow,
   JudgeAssignmentRow,
   JudgeInviteRow,
@@ -61,6 +63,7 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
   const [invites, setInvites] = useState<JudgeInviteRow[]>([]);
   const [scores, setScores] = useState<ScoreRow[]>([]);
   const [tournaments, setTournaments] = useState<TournamentRow[]>([]);
+  const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -73,13 +76,14 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
       setError('');
 
       try {
-        const [eventRow, registrationRows, assignmentRows, inviteRows, scoreRows, tournamentRows] = await Promise.all([
+        const [eventRow, registrationRows, assignmentRows, inviteRows, scoreRows, tournamentRows, attendanceRowsResult] = await Promise.all([
           fetchEventById(eventId),
           fetchRegistrations(eventId),
           fetchJudgeAssignments(eventId),
           fetchJudgeInvites(eventId),
           fetchScoresForEvent(eventId),
           fetchTournaments(eventId),
+          fetchAttendanceForEvent(eventId),
         ]);
 
         setEvent(eventRow);
@@ -88,6 +92,7 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
         setInvites(inviteRows);
         setScores(scoreRows);
         setTournaments(tournamentRows);
+        setAttendanceRows(attendanceRowsResult);
 
         const judgeIds = assignmentRows.map((assignment) => assignment.judge_id);
         setJudges(judgeIds.length ? await fetchJudgesByIds(judgeIds) : []);
@@ -107,12 +112,14 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
     const unsubscribeRegistrations = subscribeToRegistrations(eventId, () => load());
     const unsubscribeScores = subscribeToScores(eventId, () => load());
     const unsubscribeTournaments = subscribeToTournaments(eventId, () => load());
+    const unsubscribeAttendance = subscribeToAttendance(eventId, () => load());
 
     return () => {
       unsubscribeJudges();
       unsubscribeRegistrations();
       unsubscribeScores();
       unsubscribeTournaments();
+      unsubscribeAttendance();
     };
   }, [eventId, load]);
 
@@ -134,10 +141,12 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
     }
   };
 
-  if (scannerOpen) {
+  if (scannerOpen && event) {
     return (
       <CheckInScannerScreen
+        event={event}
         registrations={registrations}
+        attendanceRows={attendanceRows}
         onClose={() => setScannerOpen(false)}
         onCheckedIn={() => load()}
       />
@@ -202,6 +211,7 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
             <ParticipantsTab
               event={event}
               registrations={registrations}
+              attendanceRows={attendanceRows}
               colors={colors}
               onOpenScanner={() => setScannerOpen(true)}
             />
@@ -281,15 +291,17 @@ function InfoTile({
 function ParticipantsTab({
   event,
   registrations,
+  attendanceRows,
   colors,
   onOpenScanner,
 }: {
   event: EventRow;
   registrations: RegistrationRow[];
+  attendanceRows: AttendanceRow[];
   colors: ThemeColors;
   onOpenScanner: () => void;
 }) {
-  const checkedInCount = registrations.filter(isCheckedIn).length;
+  const checkedInCount = registrations.filter((registration) => isCheckedIn(registration, attendanceRows)).length;
 
   return (
     <View style={{ gap: 16 }}>
@@ -318,7 +330,7 @@ function ParticipantsTab({
           <EmptyState icon="users" title="No participants have registered for this event." />
         ) : (
           registrations.map((registration) => {
-            const checkedIn = isCheckedIn(registration);
+            const checkedIn = isCheckedIn(registration, attendanceRows);
             return (
               <View key={registration.id} style={[sectionCardStyle(colors), { marginBottom: 10 }]}>
                 <View style={rowBetween}>
@@ -336,7 +348,7 @@ function ParticipantsTab({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                   <Feather name={checkedIn ? 'check-circle' : 'circle'} size={12} color={checkedIn ? colors.green : colors.textMuted} />
                   <Text style={{ color: checkedIn ? colors.green : colors.textMuted, fontSize: 11, fontWeight: '700' }}>
-                    {checkedIn ? `Checked in ${formatCheckInTime(checkedInAt(registration))}` : 'Not checked in'}
+                    {checkedIn ? `Checked in ${formatCheckInTime(checkedInAt(registration, attendanceRows))}` : 'Not checked in'}
                   </Text>
                 </View>
               </View>

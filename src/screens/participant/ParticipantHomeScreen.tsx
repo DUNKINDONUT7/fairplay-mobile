@@ -8,15 +8,15 @@ import { useAppTheme } from '@/contexts/ThemeContext';
 import { radius } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate } from '@/services/eventService';
-import { fetchAllRegistrations, isCheckedIn, isMyRegistration, subscribeToAllRegistrations } from '@/services/participantService';
-import { participantCheckInQRValue } from '@/services/qrService';
+import { fetchAllRegistrations, isMyRegistration, subscribeToAllRegistrations } from '@/services/participantService';
+import { fetchAttendanceForEvents, isCheckedIn } from '@/services/attendanceService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
 import { EmptyState, ErrorState, LoadingState } from '@/components/organizer/OrganizerStates';
 import { RegisterForEventScreen } from '@/screens/participant/RegisterForEventScreen';
 import { ProfileScreen } from '@/screens/participant/ProfileScreen';
 import type { ProfileRow } from '@/services/profileService';
 import { useLiveRefresh } from '@/utils/liveRefresh';
-import type { EventRow, RegistrationRow } from '@/types/organizer';
+import type { AttendanceRow, EventRow, RegistrationRow } from '@/types/organizer';
 
 const HIDDEN_STATUSES = new Set(['draft', 'completed', 'rejected', 'archived']);
 type HomeTab = 'events' | 'history';
@@ -43,6 +43,7 @@ export function ParticipantHomeScreen({
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
+  const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -87,6 +88,29 @@ export function ParticipantHomeScreen({
   );
 
   const registeredEventIds = useMemo(() => new Set(myRegistrations.map((registration) => registration.event_id)), [myRegistrations]);
+
+  const myEventIdsKey = Array.from(registeredEventIds).sort().join(',');
+
+  useEffect(() => {
+    const eventIds = myEventIdsKey ? myEventIdsKey.split(',').map(Number) : [];
+    if (eventIds.length === 0) {
+      setAttendanceRows([]);
+      return;
+    }
+
+    let isMounted = true;
+    fetchAttendanceForEvents(eventIds)
+      .then((rows) => {
+        if (isMounted) setAttendanceRows(rows);
+      })
+      .catch(() => {
+        if (isMounted) setAttendanceRows([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [myEventIdsKey]);
 
   // Splits registrations by whether their event has wrapped up, so a
   // finished event doesn't keep cluttering "My Registrations" and instead
@@ -219,16 +243,27 @@ export function ParticipantHomeScreen({
                       </Pressable>
 
                       {expanded ? (
-                        <View style={styles.qrWrap}>
-                          <View style={[styles.qrCard, { backgroundColor: colors.white }]}>
-                            <QRCode value={participantCheckInQRValue(registration.id)} size={140} backgroundColor={colors.white} color="#0F172A" />
+                        registration.individual_details?.qrToken ? (
+                          <View style={styles.qrWrap}>
+                            <View style={[styles.qrCard, { backgroundColor: colors.white }]}>
+                              <QRCode
+                                value={registration.individual_details.qrToken}
+                                size={140}
+                                backgroundColor={colors.white}
+                                color="#0F172A"
+                              />
+                            </View>
+                            <Text style={[styles.qrHint, { color: colors.textSecondary }]}>
+                              {isCheckedIn(registration, attendanceRows)
+                                ? "You're checked in for this event."
+                                : 'Show this to event staff to check in on-site.'}
+                            </Text>
                           </View>
-                          <Text style={[styles.qrHint, { color: colors.textSecondary }]}>
-                            {isCheckedIn(registration)
-                              ? "You're checked in for this event."
-                              : 'Show this to event staff to check in on-site.'}
+                        ) : (
+                          <Text style={[styles.qrHint, { color: colors.textMuted, marginTop: 10 }]}>
+                            Check-in QR is not available for this registration.
                           </Text>
-                        </View>
+                        )
                       ) : null}
                     </View>
                   );
@@ -314,12 +349,18 @@ export function ParticipantHomeScreen({
                     ) : null}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                       <Feather
-                        name={isCheckedIn(registration) ? 'check-circle' : 'circle'}
+                        name={isCheckedIn(registration, attendanceRows) ? 'check-circle' : 'circle'}
                         size={12}
-                        color={isCheckedIn(registration) ? colors.green : colors.textMuted}
+                        color={isCheckedIn(registration, attendanceRows) ? colors.green : colors.textMuted}
                       />
-                      <Text style={{ color: isCheckedIn(registration) ? colors.green : colors.textMuted, fontSize: 11, fontWeight: '700' }}>
-                        {isCheckedIn(registration) ? 'Attended (checked in)' : 'Not checked in'}
+                      <Text
+                        style={{
+                          color: isCheckedIn(registration, attendanceRows) ? colors.green : colors.textMuted,
+                          fontSize: 11,
+                          fontWeight: '700',
+                        }}
+                      >
+                        {isCheckedIn(registration, attendanceRows) ? 'Attended (checked in)' : 'Not checked in'}
                       </Text>
                     </View>
                   </View>

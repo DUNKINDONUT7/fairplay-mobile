@@ -47,27 +47,6 @@ export async function fetchAllRegistrations(): Promise<RegistrationRow[]> {
   return (data || []) as RegistrationRow[];
 }
 
-export function isCheckedIn(registration: RegistrationRow): boolean {
-  return Boolean((registration.metadata as { checkedInAt?: string } | null | undefined)?.checkedInAt);
-}
-
-export function checkedInAt(registration: RegistrationRow): string | null {
-  return (registration.metadata as { checkedInAt?: string } | null | undefined)?.checkedInAt || null;
-}
-
-// Stamps on-site attendance onto the existing `metadata` jsonb column
-// (already holds `participantId`, see registerForEvent below) instead of a
-// new column, so check-in works against the schema as it exists today.
-export async function checkInRegistration(registration: RegistrationRow): Promise<RegisterResult> {
-  if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
-
-  const nextMetadata = { ...(registration.metadata || {}), checkedInAt: new Date().toISOString() };
-
-  const { error } = await supabase.from('registrations').update({ metadata: nextMetadata }).eq('id', registration.id);
-  if (error) return { success: false, error: 'Unable to check in this participant. Please try again.' };
-  return { success: true };
-}
-
 export function isMyRegistration(registration: RegistrationRow, email?: string | null, fullName?: string | null): boolean {
   const regEmail = String(registration.email || '').trim().toLowerCase();
   const userEmail = String(email || '').trim().toLowerCase();
