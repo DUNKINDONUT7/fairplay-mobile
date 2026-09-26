@@ -6,6 +6,7 @@ import { MobileShell, type MobileDashboard } from '@/components/layout/MobileShe
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { fetchMobileData, subscribeToFairplayRealtime } from '@/services/fairplayApi';
 import { fetchOwnProfile, type ProfileRow } from '@/services/profileService';
+import { buildAppUrl } from '@/services/qrService';
 import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow } from '@/types/organizer';
 import { ThemeProvider, useAppTheme } from '@/contexts/ThemeContext';
@@ -115,6 +116,36 @@ function AppContent() {
     return {
       success: true,
       message: 'Account created. Please check your email to confirm your account before signing in.',
+    };
+  };
+
+  // Mirrors the web app's "forgot password" flow: Supabase emails a link to
+  // this redirectTo URL with a recovery token, and the web app's own
+  // /auth/reset-password page reads that token and lets the user set a new
+  // password. Mobile only triggers the send — the reset itself is completed
+  // on web, same as the web app already does for its own users.
+  const handleResetPassword = async (email: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      return {
+        success: false,
+        error: 'Supabase auth is not configured yet.',
+      };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: buildAppUrl('/auth/reset-password'),
+    });
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message || 'Unable to send the reset email. Please try again.',
+      };
+    }
+
+    return {
+      success: true,
+      message: "Check your email for a link to reset your password.",
     };
   };
 
@@ -252,6 +283,7 @@ function AppContent() {
         onSignIn={handleSignIn}
         onSignUp={handleSignUp}
         onSignOut={handleSignOut}
+        onResetPassword={handleResetPassword}
       />
     </SafeAreaView>
   );

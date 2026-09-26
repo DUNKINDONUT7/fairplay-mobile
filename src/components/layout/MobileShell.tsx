@@ -7,6 +7,7 @@ import { useAppTheme } from '@/contexts/ThemeContext';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { RegisterScreen } from '@/screens/auth/RegisterScreen';
 import { WelcomeScreen } from '@/screens/auth/WelcomeScreen';
+import { ForgotPasswordScreen } from '@/screens/auth/ForgotPasswordScreen';
 import { ScanEventQRScreen } from '@/screens/auth/ScanEventQRScreen';
 import { OrganizerDashboardScreen } from '@/screens/organizer/OrganizerDashboardScreen';
 import { OrganizerEventsScreen } from '@/screens/organizer/OrganizerEventsScreen';
@@ -75,6 +76,7 @@ export function MobileShell({
   onSignIn,
   onSignUp,
   onSignOut,
+  onResetPassword,
 }: {
   events: EventRow[];
   selectedDashboard: MobileDashboard;
@@ -98,6 +100,7 @@ export function MobileShell({
     password: string;
   }) => Promise<{ success: boolean; error?: string; message?: string }>;
   onSignOut?: () => Promise<void> | void;
+  onResetPassword?: (email: string) => Promise<{ success: boolean; error?: string; message?: string }>;
 }) {
   const { colors: COLORS } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -115,7 +118,7 @@ export function MobileShell({
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
-  const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register'>('welcome');
+  const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'register' | 'forgot-password'>('welcome');
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [organizerEventIds, setOrganizerEventIds] = useState<Set<number>>(new Set());
   const [scanningEventQR, setScanningEventQR] = useState(false);
@@ -260,7 +263,18 @@ export function MobileShell({
           onSignIn={onSignIn}
           onNavigateRegister={() => setAuthScreen('register')}
           onNavigateBack={cancelPendingEvent}
+          onNavigateForgotPassword={() => setAuthScreen('forgot-password')}
           noticeMessage={pendingNotice}
+        />
+      );
+    }
+
+    if (authScreen === 'forgot-password') {
+      return (
+        <ForgotPasswordScreen
+          authConfigured={authConfigured}
+          onSendResetLink={onResetPassword}
+          onNavigateBack={() => setAuthScreen('login')}
         />
       );
     }

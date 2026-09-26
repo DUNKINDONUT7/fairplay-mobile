@@ -4,7 +4,6 @@ import { Feather } from '@expo/vector-icons';
 import { AuthContainer } from '@/components/auth/AuthContainer';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { FormField } from '@/components/auth/FormField';
-import { PasswordInput } from '@/components/auth/PasswordInput';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { radius } from '@/theme';
 import { friendlyAuthError } from '@/utils/authErrors';
@@ -12,72 +11,57 @@ import { isValidEmail } from '@/utils/validation';
 
 type AuthResult = { success: boolean; error?: string; message?: string };
 
-export function LoginScreen({
+export function ForgotPasswordScreen({
   authConfigured,
-  onSignIn,
-  onNavigateRegister,
+  onSendResetLink,
   onNavigateBack,
-  onNavigateForgotPassword,
-  noticeMessage,
 }: {
   authConfigured?: boolean;
-  onSignIn?: (email: string, password: string) => Promise<AuthResult>;
-  onNavigateRegister: () => void;
-  onNavigateBack?: () => void;
-  onNavigateForgotPassword?: () => void;
-  noticeMessage?: string;
+  onSendResetLink?: (email: string) => Promise<AuthResult>;
+  onNavigateBack: () => void;
 }) {
   const { colors } = useAppTheme();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [emailError, setEmailError] = useState('');
   const [formError, setFormError] = useState('');
+  const [formMessage, setFormMessage] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const validate = () => {
-    const nextErrors: { email?: string; password?: string } = {};
-    if (!email.trim()) {
-      nextErrors.email = 'Email is required.';
-    } else if (!isValidEmail(email)) {
-      nextErrors.email = 'Enter a valid email address.';
-    }
-    if (!password) {
-      nextErrors.password = 'Password is required.';
-    }
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
 
   const handleSubmit = async () => {
     if (busy) return;
     setFormError('');
-    if (!validate()) return;
+    setFormMessage('');
+
+    if (!email.trim()) {
+      setEmailError('Email is required.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setEmailError('Enter a valid email address.');
+      return;
+    }
+    setEmailError('');
 
     setBusy(true);
-    const result = await onSignIn?.(email.trim(), password);
+    const result = await onSendResetLink?.(email.trim());
     setBusy(false);
 
-    if (!result?.success) {
+    if (result?.success) {
+      setFormMessage(result.message || 'Check your email for a link to reset your password.');
+    } else {
       setFormError(friendlyAuthError(result?.error));
     }
   };
 
   return (
     <AuthContainer onBack={onNavigateBack}>
-      <AuthHeader title="Welcome Back" subtitle="Sign in to continue to your account." />
-
-      {noticeMessage ? (
-        <View style={[styles.banner, { backgroundColor: colors.blueLight, borderColor: 'rgba(37, 99, 235, 0.4)' }]}>
-          <Feather name="info" size={14} color={colors.blue} />
-          <Text style={[styles.bannerText, { color: colors.textPrimary }]}>{noticeMessage}</Text>
-        </View>
-      ) : null}
+      <AuthHeader title="Reset Password" subtitle="Enter your account email and we'll send you a link to reset your password." />
 
       {!authConfigured ? (
         <View style={[styles.banner, { backgroundColor: colors.amberLight, borderColor: 'rgba(245, 158, 11, 0.4)' }]}>
           <Feather name="alert-triangle" size={14} color={colors.amber} />
           <Text style={[styles.bannerText, { color: colors.textPrimary }]}>
-            Supabase auth is not configured yet, so sign-in will not work until the environment variables are
+            Supabase auth is not configured yet, so password reset will not work until the environment variables are
             connected.
           </Text>
         </View>
@@ -90,63 +74,47 @@ export function LoginScreen({
         </View>
       ) : null}
 
+      {formMessage ? (
+        <View style={[styles.banner, { backgroundColor: colors.greenLight, borderColor: 'rgba(34, 197, 94, 0.4)' }]}>
+          <Feather name="check-circle" size={14} color={colors.green} />
+          <Text style={[styles.bannerText, { color: colors.textPrimary }]}>{formMessage}</Text>
+        </View>
+      ) : null}
+
       <FormField
         label="Email"
         value={email}
         onChangeText={(text) => {
           setEmail(text);
-          if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
+          if (emailError) setEmailError('');
         }}
-        error={errors.email}
+        error={emailError}
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
         placeholder="you@example.com"
-        returnKeyType="next"
-      />
-
-      <PasswordInput
-        label="Password"
-        value={password}
-        onChangeText={(text) => {
-          setPassword(text);
-          if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
-        }}
-        error={errors.password}
-        placeholder="••••••••"
-        autoComplete="password"
         returnKeyType="done"
         onSubmitEditing={handleSubmit}
       />
-
-      <Pressable
-        onPress={onNavigateForgotPassword}
-        style={styles.forgotPasswordRow}
-        accessibilityRole="button"
-        accessibilityLabel="Forgot password"
-      >
-        <Text style={[styles.switchLink, { color: colors.blue }]}>Forgot password?</Text>
-      </Pressable>
 
       <Pressable
         style={[styles.primaryButton, { backgroundColor: colors.blue }, busy && styles.disabled]}
         onPress={handleSubmit}
         disabled={busy}
         accessibilityRole="button"
-        accessibilityLabel="Log in"
+        accessibilityLabel="Send reset link"
         accessibilityState={{ disabled: busy, busy }}
       >
         {busy ? (
           <ActivityIndicator color={colors.white} size="small" />
         ) : (
-          <Text style={[styles.primaryButtonText, { color: colors.white }]}>Log in</Text>
+          <Text style={[styles.primaryButtonText, { color: colors.white }]}>Send reset link</Text>
         )}
       </Pressable>
 
       <View style={styles.switchRow}>
-        <Text style={[styles.switchText, { color: colors.textSecondary }]}>Don&apos;t have an account? </Text>
-        <Pressable onPress={onNavigateRegister} accessibilityRole="button" accessibilityLabel="Create account">
-          <Text style={[styles.switchLink, { color: colors.blue }]}>Create Account</Text>
+        <Pressable onPress={onNavigateBack} accessibilityRole="button" accessibilityLabel="Back to sign in">
+          <Text style={[styles.switchLink, { color: colors.blue }]}>Back to sign in</Text>
         </Pressable>
       </View>
     </AuthContainer>
@@ -183,18 +151,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  forgotPasswordRow: {
-    alignSelf: 'flex-end',
-    marginTop: 10,
-  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    flexWrap: 'wrap',
     marginTop: 24,
-  },
-  switchText: {
-    fontSize: 14,
   },
   switchLink: {
     fontSize: 14,
