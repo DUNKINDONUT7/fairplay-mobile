@@ -76,10 +76,12 @@ export async function checkInParticipant({
   event,
   registration,
   qrToken,
+  scannerId,
 }: {
   event: EventRow;
   registration: RegistrationRow;
   qrToken: string;
+  scannerId?: string | null;
 }): Promise<ActionResult> {
   if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
 
@@ -96,7 +98,10 @@ export async function checkInParticipant({
     event_id: event.id,
     attendee_id: attendeeIdFor(registration),
     attendee_name: registration.team_name || registration.participant_name,
+    attendee_type: 'participant',
     role: 'participant',
+    check_in_status: 'checked-in',
+    scanner_id: scannerId || null,
     checked_in_at: new Date().toISOString(),
     qr_token: qrToken,
     source: 'mobile',
@@ -110,8 +115,11 @@ export async function checkInParticipant({
 }
 
 // Records a general-audience attendance scan — no registration, no account,
-// just a name. Writes to the same `attendance` table as checkInParticipant
-// (role: 'audience' instead of 'participant') and bumps events.audience_attendance,
+// just a name. Writes to the same `attendance` table as checkInParticipant,
+// but attendee_type/role are 'audience' — attendee_type specifically is what
+// the web Attendance page groups rows by into its "Audience Attendance"
+// table; leaving it unset silently defaulted to 'participant' (confirmed
+// live via the Supabase table editor). Also bumps events.audience_attendance,
 // the same cached-counter pattern already used for events.participants.
 export async function checkInAudienceMember({ event, name }: { event: EventRow; name: string }): Promise<ActionResult> {
   if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
@@ -127,7 +135,10 @@ export async function checkInAudienceMember({ event, name }: { event: EventRow; 
     event_id: event.id,
     attendee_id: attendeeId,
     attendee_name: trimmedName,
+    attendee_type: 'audience',
     role: 'audience',
+    check_in_status: 'checked-in',
+    scanner_id: null,
     checked_in_at: new Date().toISOString(),
     qr_token: audienceAttendanceQRValue(event),
     source: 'mobile',

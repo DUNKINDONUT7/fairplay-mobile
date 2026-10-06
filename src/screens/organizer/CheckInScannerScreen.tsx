@@ -11,12 +11,14 @@ export function CheckInScannerScreen({
   event,
   registrations,
   attendanceRows,
+  scannerUserId,
   onClose,
   onCheckedIn,
 }: {
   event: EventRow;
   registrations: RegistrationRow[];
   attendanceRows: AttendanceRow[];
+  scannerUserId?: string | null;
   onClose: () => void;
   onCheckedIn: () => void;
 }) {
@@ -45,7 +47,7 @@ export function CheckInScannerScreen({
       return;
     }
 
-    const result = await checkInParticipant({ event, registration, qrToken });
+    const result = await checkInParticipant({ event, registration, qrToken, scannerId: scannerUserId });
     setBusy(false);
 
     if (result.success) {

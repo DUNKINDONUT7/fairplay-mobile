@@ -50,7 +50,17 @@ const TABS: { key: DetailTab; label: string; icon: keyof typeof Feather.glyphMap
   { key: 'bracket', label: 'Bracket', icon: 'git-branch' },
 ];
 
-export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId: number; onBack: () => void; tabBarHeight: number }) {
+export function EventDetailsScreen({
+  eventId,
+  scannerUserId,
+  onBack,
+  tabBarHeight,
+}: {
+  eventId: number;
+  scannerUserId?: string | null;
+  onBack: () => void;
+  tabBarHeight: number;
+}) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -147,6 +157,7 @@ export function EventDetailsScreen({ eventId, onBack, tabBarHeight }: { eventId:
         event={event}
         registrations={registrations}
         attendanceRows={attendanceRows}
+        scannerUserId={scannerUserId}
         onClose={() => setScannerOpen(false)}
         onCheckedIn={() => load()}
       />

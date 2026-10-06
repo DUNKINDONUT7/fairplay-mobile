@@ -87,19 +87,25 @@ export type RegistrationRow = {
   created_at?: string | null;
 };
 
-// Confirmed against the live Supabase schema (public.attendance) via the
-// REST API's column-probing, since this table isn't in this repo. `role`
-// distinguishes participant/judge attendees sharing one table; `attendee_id`
-// is text, matching the same contestant-id string scheme used for
-// scores.contestant_id (see metadata.participantId in participantService.ts)
-// rather than a numeric FK to registrations.id.
+// Confirmed against the live Supabase schema (public.attendance), checked
+// directly in the Supabase Table Editor since this table isn't in this repo.
+// `attendee_type` — NOT `role` — is what the web Attendance page actually
+// groups rows by into its separate "Participant Attendance" / "Audience
+// Attendance" tables; leaving it unset silently defaulted every insert to
+// 'participant' even for audience check-ins. `attendee_id` is text, matching
+// the same contestant-id string scheme used for scores.contestant_id (see
+// metadata.participantId in participantService.ts) rather than a numeric FK
+// to registrations.id.
 export type AttendanceRow = {
   id: string;
   event_id: number;
   sub_event_id?: string | null;
   attendee_id: string;
   attendee_name?: string | null;
+  attendee_type?: string | null;
   role?: string | null;
+  check_in_status?: string | null;
+  scanner_id?: string | null;
   checked_in_at?: string | null;
   qr_token?: string | null;
   source?: string | null;

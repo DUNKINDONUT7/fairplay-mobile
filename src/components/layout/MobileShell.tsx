@@ -340,7 +340,9 @@ export function MobileShell({
   }
 
   if (selectedEventId !== null) {
-    return <EventDetailsScreen eventId={selectedEventId} onBack={() => setSelectedEventId(null)} tabBarHeight={0} />;
+    return (
+      <EventDetailsScreen eventId={selectedEventId} scannerUserId={user.id} onBack={() => setSelectedEventId(null)} tabBarHeight={0} />
+    );
   }
 
   return (
