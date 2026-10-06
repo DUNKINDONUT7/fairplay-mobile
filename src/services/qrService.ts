@@ -1,3 +1,5 @@
+import type { EventRow } from '@/types/organizer';
+
 // Mirrors src/utils/appUrl.js `buildAppUrl()` on the web app. Mobile has no
 // window.location to fall back to, so it falls back to the same production
 // URL the web app's own Edge Functions fall back to
@@ -38,6 +40,23 @@ export function parseParticipantRegistrationQRValue(value: string): number | nul
 // keyed by eventId only (distinct from the emailed per-invite token link).
 export function judgeAccessQRValue(eventId: number): string {
   return buildAppUrl(`/judge/open/${eventId}`);
+}
+
+// A no-login attendance pass for the general audience (not the registered
+// participants roster) — scanned in-app, so a plain token, not a URL. Uses
+// the same deterministic "audience-<eventId>" shape already seen in a live
+// event's metadata.audienceQrToken, so it needs no separate column/value to
+// generate or store.
+export function audienceAttendanceQRValue(event: EventRow): string {
+  const token = (event.metadata as { audienceQrToken?: string } | null | undefined)?.audienceQrToken;
+  return token || `audience-${event.id}`;
+}
+
+export function parseAudienceAttendanceQRValue(value: string): number | null {
+  const match = /^audience-(\d+)$/.exec(value.trim());
+  if (!match) return null;
+  const id = Number(match[1]);
+  return Number.isFinite(id) ? id : null;
 }
 
 // Same public event page the web app links to from PublicEventNav — no

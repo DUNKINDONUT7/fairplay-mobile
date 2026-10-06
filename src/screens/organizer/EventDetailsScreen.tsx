@@ -19,7 +19,7 @@ import {
 import { fetchRegistrations, subscribeToRegistrations } from '@/services/participantService';
 import { checkedInAt, fetchAttendanceForEvent, isCheckedIn, subscribeToAttendance } from '@/services/attendanceService';
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
-import { judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
+import { audienceAttendanceQRValue, judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
 import { exportEventResults } from '@/services/resultsExportService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
@@ -259,6 +259,17 @@ function OverviewTab({ event, judgeCount, colors }: { event: EventRow; judgeCoun
         title="Share with Audience"
         subtitle="Scan for a live, public view of this event's overview, leaderboard, and bracket — no login needed. Always shows real, up-to-date results."
         value={spectatorViewQRValue(event.id)}
+      />
+
+      <InfoTile icon="users" label="Audience attendance" value={String(event.audience_attendance || 0)} colors={colors} full />
+
+      <QRCard
+        title="Audience Attendance QR"
+        subtitle="Show this on-screen for the crowd to scan. They just enter their name — no account or login needed — to mark their attendance."
+        value={audienceAttendanceQRValue(event)}
+        icon="user-check"
+        accentColor={colors.violet}
+        accentLight={colors.violetLight}
       />
     </View>
   );

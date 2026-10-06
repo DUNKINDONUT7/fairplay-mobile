@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { QRScannerShell, qrScannerFooterStyles as styles } from '@/components/common/QRScannerShell';
-import { parseParticipantRegistrationQRValue } from '@/services/qrService';
+import { parseAudienceAttendanceQRValue, parseParticipantRegistrationQRValue } from '@/services/qrService';
 import type { EventRow } from '@/types/organizer';
+
+export type ScannedEventQR = { type: 'register' | 'audience'; event: EventRow };
 
 export function ScanEventQRScreen({
   events,
@@ -11,7 +13,7 @@ export function ScanEventQRScreen({
 }: {
   events: EventRow[];
   onClose: () => void;
-  onScanned: (event: EventRow) => void;
+  onScanned: (result: ScannedEventQR) => void;
 }) {
   const [scanning, setScanning] = useState(true);
   const [error, setError] = useState('');
@@ -19,16 +21,18 @@ export function ScanEventQRScreen({
   const handleScanned = ({ data }: { data: string }) => {
     if (!scanning) return;
 
-    const eventId = parseParticipantRegistrationQRValue(data);
+    const registrationEventId = parseParticipantRegistrationQRValue(data);
+    const audienceEventId = parseAudienceAttendanceQRValue(data);
+    const eventId = registrationEventId ?? audienceEventId;
     const event = eventId != null ? events.find((row) => row.id === eventId) : undefined;
 
     if (!event) {
       setScanning(false);
-      setError('This QR code is not a valid event registration code.');
+      setError('This QR code is not a valid event code.');
       return;
     }
 
-    onScanned(event);
+    onScanned({ type: registrationEventId != null ? 'register' : 'audience', event });
   };
 
   const resumeScanning = () => {
@@ -51,7 +55,7 @@ export function ScanEventQRScreen({
             </Pressable>
           </View>
         ) : (
-          <Text style={styles.hintText}>Point the camera at an event's registration QR code.</Text>
+          <Text style={styles.hintText}>Point the camera at an event's registration or audience attendance QR code.</Text>
         )
       }
     />

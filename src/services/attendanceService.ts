@@ -1,4 +1,5 @@
 import { supabase } from '@/config/supabase';
+import { audienceAttendanceQRValue } from '@/services/qrService';
 import type { AttendanceRow, EventRow, RegistrationRow } from '@/types/organizer';
 
 export async function fetchAttendanceForEvent(eventId: number): Promise<AttendanceRow[]> {
@@ -105,5 +106,42 @@ export async function checkInParticipant({
     console.warn('checkInParticipant insert failed:', error);
     return { success: false, error: `Unable to check in this participant: ${error.message}` };
   }
+  return { success: true };
+}
+
+// Records a general-audience attendance scan — no registration, no account,
+// just a name. Writes to the same `attendance` table as checkInParticipant
+// (role: 'audience' instead of 'participant') and bumps events.audience_attendance,
+// the same cached-counter pattern already used for events.participants.
+export async function checkInAudienceMember({ event, name }: { event: EventRow; name: string }): Promise<ActionResult> {
+  if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
+
+  const trimmedName = name.trim();
+  if (!trimmedName) return { success: false, error: 'Please enter your name.' };
+
+  const id = `attendance-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const attendeeId = `audience-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const { error } = await supabase.from('attendance').insert({
+    id,
+    event_id: event.id,
+    attendee_id: attendeeId,
+    attendee_name: trimmedName,
+    role: 'audience',
+    checked_in_at: new Date().toISOString(),
+    qr_token: audienceAttendanceQRValue(event),
+    source: 'mobile',
+  });
+
+  if (error) {
+    console.warn('checkInAudienceMember insert failed:', error);
+    return { success: false, error: `Unable to record your attendance: ${error.message}` };
+  }
+
+  await supabase
+    .from('events')
+    .update({ audience_attendance: (event.audience_attendance || 0) + 1 })
+    .eq('id', event.id);
+
   return { success: true };
 }

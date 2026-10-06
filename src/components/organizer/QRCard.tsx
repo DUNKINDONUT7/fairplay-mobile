@@ -5,20 +5,53 @@ import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { radius } from '@/theme';
 
-export function QRCard({ title, subtitle, value }: { title: string; subtitle: string; value: string }) {
+export function QRCard({
+  title,
+  subtitle,
+  value,
+  icon,
+  accentColor,
+  accentLight,
+}: {
+  title: string;
+  subtitle: string;
+  value: string;
+  // icon/accentColor/accentLight are opt-in: omitting them keeps the plain
+  // look every existing QR card already has. Pass them for a QR that needs
+  // to look visibly different at a glance (e.g. a public, no-login scan
+  // target like audience attendance) so it's never confused with another
+  // QR code on the same screen or printout.
+  icon?: keyof typeof Feather.glyphMap;
+  accentColor?: string;
+  accentLight?: string;
+}) {
   const { colors } = useAppTheme();
+  const tint = accentColor || colors.blue;
+  const tintLight = accentLight || colors.blueLight;
 
   const handleShare = () => {
     Share.share({ message: value }).catch(() => {});
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        accentColor && { borderTopColor: tint, borderTopWidth: 3 },
+      ]}
+    >
+      {icon ? (
+        <View style={[styles.iconBadge, { backgroundColor: tintLight }]}>
+          <Feather name={icon} size={16} color={tint} />
+        </View>
+      ) : null}
+
       <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
 
       <View style={[styles.qrWrap, { backgroundColor: colors.white }]}>
-        <QRCode value={value} size={168} backgroundColor={colors.white} color="#0F172A" />
+        <QRCode value={value} size={168} backgroundColor={colors.white} color={accentColor ? tint : '#0F172A'} />
       </View>
 
       <View style={[styles.linkRow, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
@@ -28,13 +61,13 @@ export function QRCard({ title, subtitle, value }: { title: string; subtitle: st
       </View>
 
       <Pressable
-        style={[styles.shareButton, { backgroundColor: colors.blueLight, borderColor: colors.borderActive }]}
+        style={[styles.shareButton, { backgroundColor: tintLight, borderColor: accentColor ? tint : colors.borderActive }]}
         onPress={handleShare}
         accessibilityRole="button"
         accessibilityLabel="Share link"
       >
-        <Feather name="share-2" size={14} color={colors.blue} />
-        <Text style={[styles.shareText, { color: colors.blue }]}>Share link</Text>
+        <Feather name="share-2" size={14} color={tint} />
+        <Text style={[styles.shareText, { color: tint }]}>Share link</Text>
       </Pressable>
     </View>
   );
@@ -47,6 +80,14 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
     gap: 10,
+  },
+  iconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: -2,
   },
   title: {
     fontSize: 15,

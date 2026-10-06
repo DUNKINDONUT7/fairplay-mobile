@@ -9,6 +9,7 @@ import { RegisterScreen } from '@/screens/auth/RegisterScreen';
 import { WelcomeScreen } from '@/screens/auth/WelcomeScreen';
 import { ForgotPasswordScreen } from '@/screens/auth/ForgotPasswordScreen';
 import { ScanEventQRScreen } from '@/screens/auth/ScanEventQRScreen';
+import { AudienceAttendanceScreen } from '@/screens/audience/AudienceAttendanceScreen';
 import { OrganizerDashboardScreen } from '@/screens/organizer/OrganizerDashboardScreen';
 import { OrganizerEventsScreen } from '@/screens/organizer/OrganizerEventsScreen';
 import { EventDetailsScreen } from '@/screens/organizer/EventDetailsScreen';
@@ -125,6 +126,7 @@ export function MobileShell({
   const [organizerEventIds, setOrganizerEventIds] = useState<Set<number>>(new Set());
   const [scanningEventQR, setScanningEventQR] = useState(false);
   const [pendingEvent, setPendingEvent] = useState<EventRow | null>(null);
+  const [audienceEvent, setAudienceEvent] = useState<EventRow | null>(null);
 
   // Tracks the organizer's own event ids (lightweight, id-only concern) so
   // realtime activity for OTHER organizers' events never triggers a
@@ -236,16 +238,27 @@ export function MobileShell({
 
   const BrandMark = ({ compact = false }: { compact?: boolean }) => <AppLogo width={compact ? 81 : 106} />;
 
+  // Audience attendance never needs an account, so it's checked before the
+  // `!user` gate — it must stay reachable even once a user IS signed in
+  // (e.g. an organizer scanning their own audience QR to test it).
+  if (audienceEvent) {
+    return <AudienceAttendanceScreen event={audienceEvent} onDone={() => setAudienceEvent(null)} />;
+  }
+
   if (!user) {
     if (scanningEventQR) {
       return (
         <ScanEventQRScreen
           events={events}
           onClose={() => setScanningEventQR(false)}
-          onScanned={(event) => {
-            setPendingEvent(event);
+          onScanned={(result) => {
             setScanningEventQR(false);
-            setAuthScreen('login');
+            if (result.type === 'audience') {
+              setAudienceEvent(result.event);
+            } else {
+              setPendingEvent(result.event);
+              setAuthScreen('login');
+            }
           }}
         />
       );

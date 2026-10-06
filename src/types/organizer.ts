@@ -21,6 +21,10 @@ export type EventRow = {
   metadata?: Record<string, unknown> | null;
   criteria?: CriteriaItem[] | null;
   contestants?: unknown[] | null;
+  // Cached counter, same pattern as `participants` — bumped on each audience
+  // check-in instead of a live COUNT query.
+  audience_attendance?: number | null;
+  attendance_tracking?: boolean | null;
   status?: string | null;
   start_date?: string | null;
   end_date?: string | null;

@@ -22,17 +22,23 @@ export type ThemeColors = {
   amberLight: string;
   red: string;
   redLight: string;
+  violet: string;
+  violetLight: string;
   white: string;
 };
 
 // Brand accent colors mirror the FairPlay web app (src/styles/globals.css /
-// variables.css) and stay the same across both themes.
+// variables.css) and stay the same across both themes. Violet is the one
+// addition not pulled from web — reserved for the audience-attendance QR/
+// screen so it's never visually confused with the blue participant,
+// registration, or judge QR codes.
 const brand = {
   blue: '#2563EB',
   cyan: '#0891B2',
   green: '#22C55E',
   amber: '#F59E0B',
   red: '#EF4444',
+  violet: '#7C3AED',
 };
 
 export const lightColors: ThemeColors = {
@@ -59,6 +65,8 @@ export const lightColors: ThemeColors = {
   amberLight: 'rgba(245, 158, 11, 0.12)',
   red: brand.red,
   redLight: 'rgba(239, 68, 68, 0.12)',
+  violet: brand.violet,
+  violetLight: 'rgba(124, 58, 237, 0.10)',
   white: '#FFFFFF',
 };
 
@@ -86,5 +94,7 @@ export const darkColors: ThemeColors = {
   amberLight: 'rgba(245, 158, 11, 0.16)',
   red: brand.red,
   redLight: 'rgba(239, 68, 68, 0.16)',
+  violet: brand.violet,
+  violetLight: 'rgba(124, 58, 237, 0.18)',
   white: '#FFFFFF',
 };
