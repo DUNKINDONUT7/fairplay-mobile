@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppLogo } from '@/components/common/AppLogo';
@@ -45,73 +45,104 @@ export function AudienceAttendanceScreen({ event, onDone }: { event: EventRow; o
   };
 
   return (
-    <View style={styles.shell}>
+    <KeyboardAvoidingView style={styles.shell} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
         <Pressable
           onPress={onDone}
-          style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={styles.closeButton}
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel="Close"
         >
-          <Feather name="x" size={18} color={colors.textPrimary} />
+          <Feather name="x" size={18} color="#fff" />
         </Pressable>
-        <Text style={styles.topBarTitle}>Audience Attendance</Text>
-        <View style={{ width: 38 }} />
       </View>
 
-      <View style={styles.content}>
-        <AppLogo width={110} />
-
-        <View style={styles.eventCard}>
-          <Feather name="users" size={18} color={colors.violet} />
-          <Text style={styles.eventTitle}>{event.title}</Text>
-          <Text style={styles.eventSubtitle}>Marking your attendance for this event — no account needed.</Text>
-        </View>
-
-        {done ? (
-          <View style={[styles.banner, { backgroundColor: colors.greenLight }]}>
-            <Feather name="check-circle" size={18} color={colors.green} />
-            <Text style={[styles.bannerText, { color: colors.textPrimary }]}>
-              Thanks, {name.trim()}! Your attendance has been recorded.
-            </Text>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.inner}>
+          <View style={styles.badgeWrap}>
+            <View style={styles.badgeCircle}>
+              <Feather name="user-check" size={30} color="#fff" />
+            </View>
           </View>
-        ) : (
-          <View style={styles.formCard}>
-            {formError ? (
-              <View style={[styles.banner, { backgroundColor: colors.redLight, marginBottom: 12 }]}>
-                <Feather name="alert-circle" size={16} color={colors.red} />
-                <Text style={[styles.bannerText, { color: colors.textPrimary }]}>{formError}</Text>
+
+          <AppLogo width={100} />
+
+          {done ? (
+            <View style={styles.doneWrap}>
+              <View style={[styles.successCircle, { backgroundColor: colors.greenLight }]}>
+                <Feather name="check" size={32} color={colors.green} />
               </View>
-            ) : null}
+              <Text style={styles.doneTitle}>You're checked in!</Text>
+              <Text style={styles.doneSubtitle}>
+                Thanks, {name.trim()}. Your attendance for{'\n'}
+                <Text style={{ fontWeight: '800', color: colors.textPrimary }}>{event.title}</Text> has been recorded.
+              </Text>
 
-            <FormField
-              label="Your name"
-              value={name}
-              onChangeText={(text) => {
-                setName(text);
-                if (nameError) setNameError('');
-              }}
-              error={nameError}
-              placeholder="Full name"
-              autoCapitalize="words"
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-            />
+              <Pressable style={styles.doneButton} onPress={onDone} accessibilityRole="button" accessibilityLabel="Done">
+                <Text style={styles.doneButtonText}>Done</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.headline}>Audience Check-In</Text>
+              <View style={styles.eventPill}>
+                <Feather name="calendar" size={12} color={colors.violet} />
+                <Text style={styles.eventPillText} numberOfLines={1}>
+                  {event.title}
+                </Text>
+              </View>
+              <Text style={styles.helperText}>Just enter your name below — no account or login needed.</Text>
 
-            <Pressable
-              style={[styles.submitButton, { backgroundColor: colors.violet }, busy && { opacity: 0.7 }]}
-              onPress={handleSubmit}
-              disabled={busy}
-              accessibilityRole="button"
-              accessibilityLabel="Submit attendance"
-            >
-              {busy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.submitText}>Mark Attendance</Text>}
-            </Pressable>
-          </View>
-        )}
-      </View>
-    </View>
+              <View style={styles.formCard}>
+                {formError ? (
+                  <View style={[styles.banner, { backgroundColor: colors.redLight }]}>
+                    <Feather name="alert-circle" size={16} color={colors.red} />
+                    <Text style={[styles.bannerText, { color: colors.textPrimary }]}>{formError}</Text>
+                  </View>
+                ) : null}
+
+                <FormField
+                  label="Your name"
+                  value={name}
+                  onChangeText={(text) => {
+                    setName(text);
+                    if (nameError) setNameError('');
+                  }}
+                  error={nameError}
+                  placeholder="Full name"
+                  autoCapitalize="words"
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                />
+
+                <Pressable
+                  style={[styles.submitButton, busy && { opacity: 0.7 }]}
+                  onPress={handleSubmit}
+                  disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel="Submit attendance"
+                >
+                  {busy ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Feather name="check-circle" size={16} color="#fff" />
+                      <Text style={styles.submitText}>Mark My Attendance</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            </>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -122,92 +153,163 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.bg,
     },
     topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
       paddingHorizontal: 20,
-      paddingBottom: 12,
     },
-    backButton: {
+    closeButton: {
       width: 38,
       height: 38,
       borderRadius: radius.md,
-      borderWidth: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.45)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    topBarTitle: {
-      flex: 1,
-      color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: '800',
-      textAlign: 'center',
-    },
     content: {
-      flex: 1,
-      padding: 24,
+      flexGrow: 1,
+      paddingHorizontal: 24,
+      justifyContent: 'center',
+    },
+    inner: {
       width: '100%',
       maxWidth: 440,
       alignSelf: 'center',
-      justifyContent: 'center',
-      gap: 20,
       alignItems: 'center',
+      gap: 10,
     },
-    eventCard: {
+    badgeWrap: {
       width: '100%',
-      backgroundColor: colors.violetLight,
-      borderRadius: radius.xl,
-      borderWidth: 1,
-      borderColor: colors.violet,
-      padding: 20,
       alignItems: 'center',
-      gap: 8,
+      marginBottom: 6,
     },
-    eventTitle: {
+    badgeCircle: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: colors.violet,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 14,
+      shadowColor: colors.violet,
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 6,
+    },
+    headline: {
       color: colors.textPrimary,
-      fontSize: 18,
+      fontSize: 24,
       fontWeight: '800',
       textAlign: 'center',
+      marginTop: 18,
     },
-    eventSubtitle: {
+    eventPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.violetLight,
+      borderRadius: radius.full,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginTop: 10,
+      maxWidth: '100%',
+    },
+    eventPillText: {
+      color: colors.violet,
+      fontSize: 12,
+      fontWeight: '700',
+      flexShrink: 1,
+    },
+    helperText: {
       color: colors.textSecondary,
       fontSize: 13,
       textAlign: 'center',
-      lineHeight: 18,
+      lineHeight: 19,
+      marginTop: 10,
+      marginBottom: 6,
+      paddingHorizontal: 8,
     },
     formCard: {
       width: '100%',
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
-      borderRadius: radius.lg,
-      padding: 18,
+      borderRadius: radius.xl,
+      padding: 20,
+      marginTop: 8,
     },
     banner: {
-      width: '100%',
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: 8,
       borderRadius: radius.md,
-      padding: 14,
+      padding: 12,
+      marginBottom: 14,
     },
     bannerText: {
       flex: 1,
-      fontSize: 13,
-      lineHeight: 19,
+      fontSize: 12,
+      lineHeight: 18,
       fontWeight: '600',
     },
     submitButton: {
-      borderRadius: radius.md,
-      paddingVertical: 14,
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 4,
-      minHeight: 50,
+      gap: 8,
+      backgroundColor: colors.violet,
+      borderRadius: radius.md,
+      paddingVertical: 15,
+      marginTop: 6,
+      minHeight: 52,
     },
     submitText: {
       color: '#fff',
       fontSize: 15,
+      fontWeight: '700',
+    },
+    doneWrap: {
+      width: '100%',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 18,
+    },
+    successCircle: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+    },
+    doneTitle: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      fontWeight: '800',
+    },
+    doneSubtitle: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      textAlign: 'center',
+      lineHeight: 21,
+      marginTop: 6,
+      paddingHorizontal: 8,
+    },
+    doneButton: {
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 32,
+      paddingVertical: 13,
+      marginTop: 24,
+    },
+    doneButtonText: {
+      color: colors.textPrimary,
+      fontSize: 14,
       fontWeight: '700',
     },
   });
