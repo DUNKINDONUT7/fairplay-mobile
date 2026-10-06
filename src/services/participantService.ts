@@ -67,16 +67,22 @@ export async function registerForEvent({
   participantName,
   email,
   category,
+  phone,
+  schoolOrganization,
 }: {
   event: EventRow;
   participantName: string;
   email: string;
   category?: string;
+  phone?: string;
+  schoolOrganization?: string;
 }): Promise<RegisterResult> {
   if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
 
   const trimmedName = participantName.trim();
   const trimmedEmail = email.trim();
+  const trimmedPhone = phone?.trim() || '';
+  const trimmedSchool = schoolOrganization?.trim() || '';
 
   if (event.max_participants && (event.participants || 0) >= event.max_participants) {
     return { success: false, error: 'This event has reached its participant capacity.' };
@@ -101,6 +107,10 @@ export async function registerForEvent({
 
   const registrationId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
   const participantId = `participant-${registrationId}`;
+  // Matches the real token shape the web app generates (confirmed against a
+  // live registration row: "participant-<timestamp>-<suffix>"), not an
+  // arbitrary mobile-only format.
+  const qrToken = `participant-${registrationId}-${Math.random().toString(36).slice(2, 10)}`;
 
   const { error: insertError } = await supabase.from('registrations').insert({
     id: registrationId,
@@ -111,8 +121,11 @@ export async function registerForEvent({
     category: category?.trim() || null,
     status: 'submitted',
     registration_type: 'individual',
-    individual_details: { name: trimmedName, email: trimmedEmail, phone: '', qrToken: `qr-${registrationId}` },
-    metadata: { participantId },
+    individual_details: { name: trimmedName, email: trimmedEmail, phone: trimmedPhone, qrToken },
+    // Mirrors the fuller metadata shape seen on real (web-created)
+    // registrations, so a mobile sign-up isn't missing fields the
+    // organizer's web participant view expects to show.
+    metadata: { participantId, phone: trimmedPhone, schoolOrganization: trimmedSchool, qrToken },
   });
 
   if (insertError) return { success: false, error: 'Unable to submit your registration. Please try again.' };

@@ -31,6 +31,8 @@ export function RegisterForEventScreen({
   const [name, setName] = useState(defaultName || '');
   const [email, setEmail] = useState(defaultEmail || '');
   const [category, setCategory] = useState('');
+  const [phone, setPhone] = useState('');
+  const [schoolOrganization, setSchoolOrganization] = useState('');
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [formError, setFormError] = useState('');
@@ -62,7 +64,7 @@ export function RegisterForEventScreen({
     if (hasError) return;
 
     setBusy(true);
-    const result = await registerForEvent({ event, participantName: name, email, category });
+    const result = await registerForEvent({ event, participantName: name, email, category, phone, schoolOrganization });
     setBusy(false);
 
     if (result.success) {
@@ -130,6 +132,19 @@ export function RegisterForEventScreen({
               value={category}
               onChangeText={setCategory}
               placeholder="e.g. Beginner, Open, Grade 11"
+            />
+            <FormField
+              label="Phone number (optional)"
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="e.g. 0912 345 6789"
+              keyboardType="phone-pad"
+            />
+            <FormField
+              label="School / Organization (optional)"
+              value={schoolOrganization}
+              onChangeText={setSchoolOrganization}
+              placeholder="e.g. Your school or organization name"
             />
 
             <Pressable

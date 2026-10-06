@@ -110,7 +110,9 @@ export type ScoreRow = {
   judge_name?: string | null;
   contestant_id?: string | null;
   contestant_name?: string | null;
-  criteria_scores?: unknown[] | null;
+  // Confirmed against a live row: a jsonb object keyed by criteria id
+  // (e.g. { "criterion-1": 10 }), not an array.
+  criteria_scores?: Record<string, number> | null;
   total_score?: number | null;
   locked?: boolean | null;
   created_at?: string | null;
