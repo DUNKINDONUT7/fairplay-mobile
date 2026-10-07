@@ -11,6 +11,13 @@ export type CriteriaItem = {
   judgeInstructions?: string;
 };
 
+export type ContestantEntry = {
+  id: string;
+  name: string;
+  type?: string | null;
+  email?: string | null;
+};
+
 export type EventRow = {
   id: number;
   title: string;
@@ -20,7 +27,7 @@ export type EventRow = {
   max_participants?: number | null;
   metadata?: Record<string, unknown> | null;
   criteria?: CriteriaItem[] | null;
-  contestants?: unknown[] | null;
+  contestants?: ContestantEntry[] | null;
   // Cached counter, same pattern as `participants` — bumped on each audience
   // check-in instead of a live COUNT query.
   audience_attendance?: number | null;

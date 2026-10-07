@@ -30,6 +30,8 @@ import { isValidEmail } from '@/utils/validation';
 import { useLiveRefresh } from '@/utils/liveRefresh';
 import type {
   AttendanceRow,
+  ContestantEntry,
+  CriteriaItem,
   EventRow,
   JudgeAssignmentRow,
   JudgeInviteRow,
@@ -230,7 +232,7 @@ export function EventDetailsScreen({
           {activeTab === 'judges' && (
             <JudgesTab event={event} assignments={assignments} judges={judges} invites={invites} colors={colors} onChanged={() => load()} />
           )}
-          {activeTab === 'scoring' && <ScoringTab event={event} progress={judgeProgress} colors={colors} />}
+          {activeTab === 'scoring' && <ScoringTab event={event} progress={judgeProgress} scores={scores} colors={colors} />}
           {activeTab === 'bracket' && <BracketTab tournaments={tournaments} colors={colors} />}
         </ScrollView>
       )}
@@ -649,8 +651,31 @@ function JudgesTab({
   );
 }
 
-function ScoringTab({ event, progress, colors }: { event: EventRow; progress: ReturnType<typeof computeJudgeProgress>; colors: ThemeColors }) {
+function ScoringTab({
+  event,
+  progress,
+  scores,
+  colors,
+}: {
+  event: EventRow;
+  progress: ReturnType<typeof computeJudgeProgress>;
+  scores: ScoreRow[];
+  colors: ThemeColors;
+}) {
   const criteria = event.criteria || [];
+  const contestants = event.contestants || [];
+
+  const scoresByContestant = useMemo(() => {
+    const map = new Map<string, ScoreRow[]>();
+    scores.forEach((score) => {
+      const key = String(score.contestant_id ?? '');
+      if (!key) return;
+      const list = map.get(key) || [];
+      list.push(score);
+      map.set(key, list);
+    });
+    return map;
+  }, [scores]);
 
   return (
     <View style={{ gap: 16 }}>
@@ -704,6 +729,79 @@ function ScoringTab({ event, progress, colors }: { event: EventRow; progress: Re
           ))
         )}
       </View>
+
+      <View>
+        <View style={[rowBetween, { marginBottom: 10 }]}>
+          <Text style={[sectionTitleStyle(colors), { marginBottom: 0 }]}>Live scores</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green }} />
+            <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: '700' }}>Updates live</Text>
+          </View>
+        </View>
+        {contestants.length === 0 ? (
+          <EmptyState icon="award" title="No contestants yet." />
+        ) : (
+          contestants.map((contestant) => (
+            <ContestantScoresCard
+              key={contestant.id}
+              contestant={contestant}
+              scores={scoresByContestant.get(String(contestant.id)) || []}
+              criteria={criteria}
+              colors={colors}
+            />
+          ))
+        )}
+      </View>
+    </View>
+  );
+}
+
+function ContestantScoresCard({
+  contestant,
+  scores,
+  criteria,
+  colors,
+}: {
+  contestant: ContestantEntry;
+  scores: ScoreRow[];
+  criteria: CriteriaItem[];
+  colors: ThemeColors;
+}) {
+  const criteriaNameById = new Map(criteria.map((criterion) => [criterion.id, criterion.name]));
+  const average = scores.length
+    ? scores.reduce((sum, score) => sum + (score.total_score ?? 0), 0) / scores.length
+    : null;
+
+  return (
+    <View style={[sectionCardStyle(colors), { marginBottom: 10 }]}>
+      <View style={rowBetween}>
+        <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700', flex: 1 }} numberOfLines={1}>
+          {contestant.name}
+        </Text>
+        {average != null ? (
+          <Text style={{ color: colors.blue, fontSize: 14, fontWeight: '800' }}>{average.toFixed(1)} avg</Text>
+        ) : null}
+      </View>
+
+      {scores.length === 0 ? (
+        <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 6 }}>No scores submitted yet.</Text>
+      ) : (
+        scores.map((score) => {
+          const breakdown = Object.entries(score.criteria_scores || {})
+            .map(([criterionId, value]) => `${criteriaNameById.get(criterionId) || criterionId}: ${value}`)
+            .join('  ·  ');
+
+          return (
+            <View key={score.id} style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <View style={rowBetween}>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: '700' }}>{score.judge_name || 'Judge'}</Text>
+                <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '800' }}>{score.total_score ?? '—'}</Text>
+              </View>
+              {breakdown ? <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 3 }}>{breakdown}</Text> : null}
+            </View>
+          );
+        })
+      )}
     </View>
   );
 }
