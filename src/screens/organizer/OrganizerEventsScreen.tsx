@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate, fetchOrganizerEvents, subscribeToOrganizerEvents } from '@/services/eventService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
@@ -206,6 +206,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: 12,
       paddingVertical: 10,
       marginBottom: 4,
+      ...shadows.card,
     },
     searchInput: {
       flex: 1,
@@ -236,6 +237,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 16,
       marginBottom: 12,
       gap: 4,
+      ...shadows.card,
     },
     cardHeader: {
       flexDirection: 'row',

@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppLogo } from '@/components/common/AppLogo';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { FormField } from '@/components/auth/FormField';
 import { checkInAudienceMember } from '@/services/attendanceService';
@@ -240,6 +240,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: radius.xl,
       padding: 20,
       marginTop: 8,
+      ...shadows.raised,
     },
     banner: {
       flexDirection: 'row',
@@ -265,6 +266,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 15,
       marginTop: 6,
       minHeight: 52,
+      ...coloredShadow(colors.violet),
     },
     submitText: {
       color: '#fff',

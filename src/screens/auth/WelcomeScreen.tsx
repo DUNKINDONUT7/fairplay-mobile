@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { AppLogo } from '@/components/common/AppLogo';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate } from '@/services/eventService';
 import type { EventRow } from '@/types/organizer';
@@ -123,6 +123,11 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     scanButton: {
       flexDirection: 'row',
@@ -166,11 +171,12 @@ const createStyles = (colors: ThemeColors) =>
     heroCard: {
       backgroundColor: colors.surface,
       borderRadius: radius.xxl,
-      padding: 22,
+      padding: 24,
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: 18,
       gap: 10,
+      ...shadows.raised,
     },
     heroTitle: {
       color: colors.textPrimary,
@@ -195,6 +201,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 14,
       alignItems: 'center',
       justifyContent: 'center',
+      ...coloredShadow(colors.blue),
     },
     primaryButtonText: {
       color: colors.white,
@@ -233,6 +240,7 @@ const createStyles = (colors: ThemeColors) =>
       marginBottom: 10,
       borderWidth: 1,
       borderColor: colors.border,
+      ...shadows.card,
     },
     eventHeader: {
       flexDirection: 'row',

@@ -5,7 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { AppLogo } from '@/components/common/AppLogo';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate } from '@/services/eventService';
 import { fetchAllRegistrations, isMyRegistration, subscribeToAllRegistrations } from '@/services/participantService';
@@ -280,7 +280,11 @@ export function ParticipantHomeScreen({
                         </View>
                       ) : (
                         <Pressable
-                          style={[styles.registerButton, { backgroundColor: colors.blue }, isFull && { opacity: 0.5 }]}
+                          style={[
+                            styles.registerButton,
+                            { backgroundColor: colors.blue, ...coloredShadow(colors.blue) },
+                            isFull && { opacity: 0.5 },
+                          ]}
                           onPress={() => !isFull && setRegisteringEvent(event)}
                           disabled={isFull}
                           accessibilityRole="button"
@@ -383,6 +387,11 @@ const createStyles = (colors: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     topActions: {
       flexDirection: 'row',
@@ -397,6 +406,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
+      ...shadows.card,
     },
     content: {
       padding: 20,
@@ -415,6 +425,11 @@ const createStyles = (colors: ThemeColors) =>
       borderTopColor: colors.border,
       paddingTop: 8,
       paddingHorizontal: 8,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 8,
     },
     tabItem: {
       flex: 1,
@@ -472,6 +487,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       marginBottom: 20,
       gap: 6,
+      ...shadows.raised,
     },
     heroLabel: {
       color: colors.blue,
@@ -509,6 +525,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 16,
       marginBottom: 10,
       gap: 4,
+      ...shadows.card,
     },
     cardHeader: {
       flexDirection: 'row',

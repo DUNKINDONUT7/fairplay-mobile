@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 
 export function LoadingState({ label = 'Loading...' }: { label?: string }) {
   const { colors } = useAppTheme();
@@ -100,6 +100,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     gap: 8,
+    ...shadows.card,
   },
   emptyTitle: {
     fontSize: 14,

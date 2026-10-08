@@ -3,7 +3,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate, fetchOrganizerEvents, subscribeToOrganizerEvents } from '@/services/eventService';
 import { StatusBadge } from '@/components/organizer/StatusBadge';
@@ -186,6 +186,7 @@ const tileStyles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: 14,
     marginBottom: 10,
+    ...shadows.card,
   },
   iconWrap: {
     width: 26,
@@ -222,6 +223,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 20,
       marginBottom: 18,
       gap: 6,
+      ...shadows.raised,
     },
     heroEyebrow: {
       color: colors.cyan,
@@ -272,6 +274,7 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: radius.lg,
       padding: 16,
       marginBottom: 18,
+      ...shadows.card,
     },
     totalParticipantsIconWrap: {
       width: 36,
@@ -318,6 +321,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 16,
       marginBottom: 10,
       gap: 6,
+      ...shadows.card,
     },
     eventCardHeader: {
       flexDirection: 'row',

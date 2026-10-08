@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 
 export function AuthContainer({ children, onBack }: { children: React.ReactNode; onBack?: () => void }) {
   const { colors } = useAppTheme();
@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.card,
   },
   content: {
     flexGrow: 1,

@@ -6,7 +6,7 @@ import { AuthHeader } from '@/components/auth/AuthHeader';
 import { FormField } from '@/components/auth/FormField';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius } from '@/theme';
 import { friendlyAuthError } from '@/utils/authErrors';
 import { isValidEmail } from '@/utils/validation';
 
@@ -129,7 +129,7 @@ export function LoginScreen({
       </Pressable>
 
       <Pressable
-        style={[styles.primaryButton, { backgroundColor: colors.blue }, busy && styles.disabled]}
+        style={[styles.primaryButton, { backgroundColor: colors.blue, ...coloredShadow(colors.blue) }, busy && styles.disabled]}
         onPress={handleSubmit}
         disabled={busy}
         accessibilityRole="button"

@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, StyleS
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { eventDisplayDate, fetchEventById } from '@/services/eventService';
 import {
@@ -447,6 +447,7 @@ function scanButtonStyle(colors: ThemeColors) {
     backgroundColor: colors.blue,
     borderRadius: radius.md,
     paddingVertical: 13,
+    ...coloredShadow(colors.blue),
   };
 }
 
@@ -1005,6 +1006,7 @@ function SmallField({
           fontSize: 14,
           color: colors.textPrimary,
           backgroundColor: colors.inputBackground,
+          ...shadows.card,
         }}
         placeholderTextColor={colors.placeholder}
         {...rest}
@@ -1023,6 +1025,7 @@ function sectionCardStyle(colors: ThemeColors) {
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: 14,
+    ...shadows.card,
   };
 }
 
@@ -1046,6 +1049,7 @@ function inviteButtonStyle(colors: ThemeColors) {
     backgroundColor: colors.blue,
     borderRadius: radius.md,
     paddingVertical: 13,
+    ...coloredShadow(colors.blue),
   };
 }
 
@@ -1064,6 +1068,11 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.topBar,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     backButton: {
       width: 38,
@@ -1072,6 +1081,7 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
+      ...shadows.card,
     },
     topBarTitle: {
       flex: 1,

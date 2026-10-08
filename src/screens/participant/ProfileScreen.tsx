@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { FormField } from '@/components/auth/FormField';
 import { PasswordInput } from '@/components/auth/PasswordInput';
@@ -157,7 +157,7 @@ export function ProfileScreen({
           ) : null}
 
           <Pressable
-            style={[styles.saveButton, { backgroundColor: colors.blue }, busy && { opacity: 0.7 }]}
+            style={[styles.saveButton, { backgroundColor: colors.blue, ...coloredShadow(colors.blue) }, busy && { opacity: 0.7 }]}
             onPress={handleSave}
             disabled={busy}
             accessibilityRole="button"
@@ -228,7 +228,7 @@ export function ProfileScreen({
           />
 
           <Pressable
-            style={[styles.saveButton, { backgroundColor: colors.blue }, passwordBusy && { opacity: 0.7 }]}
+            style={[styles.saveButton, { backgroundColor: colors.blue, ...coloredShadow(colors.blue) }, passwordBusy && { opacity: 0.7 }]}
             onPress={handleChangePassword}
             disabled={passwordBusy}
             accessibilityRole="button"
@@ -266,6 +266,11 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.topBar,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     backButton: {
       width: 38,
@@ -274,6 +279,7 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
+      ...shadows.card,
     },
     topBarTitle: {
       flex: 1,
@@ -294,6 +300,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderRadius: radius.lg,
       padding: 18,
+      ...shadows.card,
     },
     banner: {
       flexDirection: 'row',

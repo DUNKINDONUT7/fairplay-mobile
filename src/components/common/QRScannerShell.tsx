@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 
 // Shared camera chrome for CheckInScannerScreen and ScanEventQRScreen: both
 // need the same permission gating, full-screen camera preview, close button,
@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     gap: 10,
+    ...shadows.raised,
   },
   feedbackText: {
     color: '#fff',

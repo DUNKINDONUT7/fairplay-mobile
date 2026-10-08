@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 
 type FormFieldProps = TextInputProps & {
   label: string;
@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     fontSize: 15,
     fontWeight: '600',
+    ...shadows.card,
   },
   error: {
     fontSize: 12,

@@ -19,6 +19,7 @@ import { subscribeToOrganizerActivity } from '@/services/organizerActivityServic
 import { presentLocalNotification, requestNotificationPermissions } from '@/services/notificationService';
 import { registerForEvent } from '@/services/participantService';
 import type { ProfileRow } from '@/services/profileService';
+import { shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import type { EventRow } from '@/types/organizer';
 
@@ -457,6 +458,11 @@ const createStyles = (COLORS: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     topActions: {
       flexDirection: 'row',
@@ -471,6 +477,7 @@ const createStyles = (COLORS: ThemeColors) =>
       borderColor: COLORS.border,
       alignItems: 'center',
       justifyContent: 'center',
+      ...shadows.card,
     },
     tabBar: {
       position: 'absolute',
@@ -483,6 +490,11 @@ const createStyles = (COLORS: ThemeColors) =>
       borderTopColor: COLORS.border,
       paddingTop: 8,
       paddingHorizontal: 8,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 8,
     },
     tabItem: {
       flex: 1,

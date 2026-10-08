@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { radius, shadows } from '@/theme';
 
 type PasswordInputProps = Omit<TextInputProps, 'secureTextEntry'> & {
   label: string;
@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 4,
     gap: 10,
+    ...shadows.card,
   },
   input: {
     flex: 1,

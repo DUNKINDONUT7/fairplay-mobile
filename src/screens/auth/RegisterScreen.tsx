@@ -7,7 +7,7 @@ import { FormField } from '@/components/auth/FormField';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import type { ThemeColors } from '@/theme';
-import { radius } from '@/theme';
+import { coloredShadow, radius } from '@/theme';
 import { friendlyAuthError } from '@/utils/authErrors';
 import { getPasswordStrength, isValidEmail, PASSWORD_CHANGE_MIN_LENGTH } from '@/utils/validation';
 
@@ -199,7 +199,7 @@ export function RegisterScreen({
       />
 
       <Pressable
-        style={[styles.primaryButton, { backgroundColor: colors.blue }, busy && styles.disabled]}
+        style={[styles.primaryButton, { backgroundColor: colors.blue, ...coloredShadow(colors.blue) }, busy && styles.disabled]}
         onPress={handleSubmit}
         disabled={busy}
         accessibilityRole="button"

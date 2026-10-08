@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 import type { ThemeColors } from '@/theme';
 import { FormField } from '@/components/auth/FormField';
 import { eventDisplayDate } from '@/services/eventService';
@@ -150,7 +150,7 @@ export function RegisterForEventScreen({
             />
 
             <Pressable
-              style={[styles.submitButton, { backgroundColor: colors.blue }, busy && { opacity: 0.7 }]}
+              style={[styles.submitButton, { backgroundColor: colors.blue, ...coloredShadow(colors.blue) }, busy && { opacity: 0.7 }]}
               onPress={handleSubmit}
               disabled={busy}
               accessibilityRole="button"
@@ -184,6 +184,11 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.topBar,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
     },
     backButton: {
       width: 38,
@@ -192,6 +197,7 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
+      ...shadows.card,
     },
     topBarTitle: {
       flex: 1,
@@ -214,6 +220,7 @@ const createStyles = (colors: ThemeColors) =>
       padding: 16,
       marginBottom: 18,
       gap: 3,
+      ...shadows.card,
     },
     eventTitle: {
       color: colors.textPrimary,
@@ -237,6 +244,7 @@ const createStyles = (colors: ThemeColors) =>
       borderColor: colors.border,
       borderRadius: radius.lg,
       padding: 16,
+      ...shadows.card,
     },
     banner: {
       flexDirection: 'row',

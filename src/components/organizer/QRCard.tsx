@@ -3,7 +3,7 @@ import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/theme';
+import { coloredShadow, radius, shadows } from '@/theme';
 
 export function QRCard({
   title,
@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
     gap: 10,
+    ...shadows.raised,
   },
   iconBadge: {
     width: 34,
@@ -103,6 +104,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: radius.lg,
     marginTop: 4,
+    ...shadows.card,
   },
   linkRow: {
     width: '100%',
