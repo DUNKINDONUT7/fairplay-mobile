@@ -17,7 +17,7 @@ import {
   subscribeToJudgeData,
 } from '@/services/judgeService';
 import { fetchRegistrations, subscribeToRegistrations } from '@/services/participantService';
-import { checkedInAt, fetchAttendanceForEvent, isCheckedIn, subscribeToAttendance } from '@/services/attendanceService';
+import { attendeeCheckedInAt, fetchAttendanceForEvent, isAttendeeCheckedIn, subscribeToAttendance } from '@/services/attendanceService';
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
 import { audienceAttendanceQRValue, judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
@@ -325,7 +325,25 @@ function ParticipantsTab({
   colors: ThemeColors;
   onOpenScanner: () => void;
 }) {
-  const checkedInCount = registrations.filter((registration) => isCheckedIn(registration, attendanceRows)).length;
+  // The roster shown here must match events.contestants — the same array the
+  // web Organizer's Participants section reads (OrganizerEventDetail.jsx) —
+  // not just `registrations`. A self-registered participant gets both a
+  // contestants[] entry and a registrations row, but one the organizer adds
+  // manually or via CSV import (handleAddContestant/handleBulkImportCsv) only
+  // ever gets a contestants[] entry, so sourcing this list from `registrations`
+  // alone silently hid every organizer-added participant.
+  const contestants = event.contestants || [];
+
+  const registrationByContestantId = useMemo(() => {
+    const map = new Map<string, RegistrationRow>();
+    registrations.forEach((registration) => {
+      const participantId = (registration.metadata as { participantId?: string } | null | undefined)?.participantId;
+      if (participantId) map.set(participantId, registration);
+    });
+    return map;
+  }, [registrations]);
+
+  const checkedInCount = contestants.filter((contestant) => isAttendeeCheckedIn(contestant.id, attendanceRows)).length;
 
   return (
     <View style={{ gap: 16 }}>
@@ -347,32 +365,36 @@ function ParticipantsTab({
 
       <View>
         <View style={[rowBetween, { marginBottom: 10 }]}>
-          <Text style={sectionTitleStyle(colors)}>{event.participants || 0} Registered</Text>
+          <Text style={sectionTitleStyle(colors)}>{event.participants || contestants.length} Participants</Text>
           <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '700' }}>{checkedInCount} checked in</Text>
         </View>
-        {registrations.length === 0 ? (
+        {contestants.length === 0 ? (
           <EmptyState icon="users" title="No participants have registered for this event." />
         ) : (
-          registrations.map((registration) => {
-            const checkedIn = isCheckedIn(registration, attendanceRows);
+          contestants.map((contestant) => {
+            const registration = registrationByContestantId.get(contestant.id);
+            const checkedIn = isAttendeeCheckedIn(contestant.id, attendanceRows);
             return (
-              <View key={registration.id} style={[sectionCardStyle(colors), { marginBottom: 10 }]}>
+              <View key={contestant.id} style={[sectionCardStyle(colors), { marginBottom: 10 }]}>
                 <View style={rowBetween}>
                   <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: '700', flex: 1 }} numberOfLines={1}>
-                    {registration.team_name || registration.participant_name}
+                    {registration?.team_name || contestant.name}
                   </Text>
-                  <StatusBadge status={registration.status} />
+                  {registration?.status ? <StatusBadge status={registration.status} /> : null}
                 </View>
-                {registration.team_name ? (
+                {registration?.team_name ? (
                   <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>{registration.participant_name}</Text>
                 ) : null}
-                {registration.category ? (
+                {registration?.category ? (
                   <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>{registration.category}</Text>
+                ) : null}
+                {!registration ? (
+                  <Text style={{ color: colors.textMuted, fontSize: 11, marginTop: 2 }}>Added by organizer</Text>
                 ) : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
                   <Feather name={checkedIn ? 'check-circle' : 'circle'} size={12} color={checkedIn ? colors.green : colors.textMuted} />
                   <Text style={{ color: checkedIn ? colors.green : colors.textMuted, fontSize: 11, fontWeight: '700' }}>
-                    {checkedIn ? `Checked in ${formatCheckInTime(checkedInAt(registration, attendanceRows))}` : 'Not checked in'}
+                    {checkedIn ? `Checked in ${formatCheckInTime(attendeeCheckedInAt(contestant.id, attendanceRows))}` : 'Not checked in'}
                   </Text>
                 </View>
               </View>

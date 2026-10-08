@@ -59,6 +59,18 @@ export function checkedInAt(registration: RegistrationRow, attendanceRows: Atten
   return findAttendanceRow(registration, attendanceRows)?.checked_in_at || null;
 }
 
+// For roster entries with no registrations row at all (organizer-added via
+// "Add Participant" / CSV import on web — events.contestants only, see
+// handleAddContestant/handleBulkImportCsv in OrganizerEventDetail.jsx), the
+// contestant id IS the attendee id directly, with no qrToken to fall back on.
+export function isAttendeeCheckedIn(attendeeId: string, attendanceRows: AttendanceRow[]): boolean {
+  return attendanceRows.some((row) => row.attendee_id === attendeeId);
+}
+
+export function attendeeCheckedInAt(attendeeId: string, attendanceRows: AttendanceRow[]): string | null {
+  return attendanceRows.find((row) => row.attendee_id === attendeeId)?.checked_in_at || null;
+}
+
 // Finds which registration a scanned QR value belongs to. The scanned value
 // IS the registration's individual_details.qrToken directly (no wrapper
 // format) — see qrService.ts's removed participantCheckInQRValue for why.
