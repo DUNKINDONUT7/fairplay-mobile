@@ -192,6 +192,7 @@ export function MobileShell({
     registerForEvent({ event, participantName: displayName, email: user.email || '' }).then((result) => {
       autoRegisteringEventIdRef.current = null;
       setPendingEvent(null);
+      if (result.success) presentLocalNotification("You're registered!", `You're registered for ${event.title}.`);
       Alert.alert(
         result.success ? "You're registered!" : 'Registration incomplete',
         result.success

@@ -8,6 +8,7 @@ import type { ThemeColors } from '@/theme';
 import { FormField } from '@/components/auth/FormField';
 import { eventDisplayDate } from '@/services/eventService';
 import { registerForEvent } from '@/services/participantService';
+import { presentLocalNotification } from '@/services/notificationService';
 import { isValidEmail } from '@/utils/validation';
 import type { EventRow } from '@/types/organizer';
 
@@ -69,6 +70,7 @@ export function RegisterForEventScreen({
 
     if (result.success) {
       setDone(true);
+      presentLocalNotification("You're registered!", `You're registered for ${event.title}.`);
       onRegistered();
     } else {
       setFormError(result.error || 'Unable to submit your registration. Please try again.');

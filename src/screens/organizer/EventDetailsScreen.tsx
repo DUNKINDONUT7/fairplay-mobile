@@ -17,7 +17,13 @@ import {
   subscribeToJudgeData,
 } from '@/services/judgeService';
 import { fetchRegistrations, subscribeToRegistrations } from '@/services/participantService';
-import { attendeeCheckedInAt, fetchAttendanceForEvent, isAttendeeCheckedIn, subscribeToAttendance } from '@/services/attendanceService';
+import {
+  attendeeCheckedInAt,
+  countAudienceAttendance,
+  fetchAttendanceForEvent,
+  isAttendeeCheckedIn,
+  subscribeToAttendance,
+} from '@/services/attendanceService';
 import { computeJudgeProgress, fetchScoresForEvent, subscribeToScores } from '@/services/scoringService';
 import { audienceAttendanceQRValue, judgeAccessQRValue, participantRegistrationQRValue, spectatorViewQRValue } from '@/services/qrService';
 import { fetchTournaments, subscribeToTournaments } from '@/services/bracketService';
@@ -219,7 +225,9 @@ export function EventDetailsScreen({
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
         >
-          {activeTab === 'overview' && <OverviewTab event={event} judgeCount={assignments.length} colors={colors} />}
+          {activeTab === 'overview' && (
+            <OverviewTab event={event} judgeCount={assignments.length} attendanceRows={attendanceRows} colors={colors} />
+          )}
           {activeTab === 'participants' && (
             <ParticipantsTab
               event={event}
@@ -240,7 +248,24 @@ export function EventDetailsScreen({
   );
 }
 
-function OverviewTab({ event, judgeCount, colors }: { event: EventRow; judgeCount: number; colors: ThemeColors }) {
+function OverviewTab({
+  event,
+  judgeCount,
+  attendanceRows,
+  colors,
+}: {
+  event: EventRow;
+  judgeCount: number;
+  attendanceRows: AttendanceRow[];
+  colors: ThemeColors;
+}) {
+  // Mirrors OrganizerAttendance.jsx, which counts attendance rows live
+  // rather than trusting events.audience_attendance — mobile's own audience
+  // check-in can't write that column (RLS only allows the event's owner to
+  // update public.events, and an anonymous audience member isn't it), so
+  // the cached counter never reflects mobile check-ins.
+  const audienceAttendanceCount = countAudienceAttendance(attendanceRows);
+
   return (
     <View style={{ gap: 14 }}>
       <View style={[sectionCardStyle(colors)]}>
@@ -274,7 +299,7 @@ function OverviewTab({ event, judgeCount, colors }: { event: EventRow; judgeCoun
         value={spectatorViewQRValue(event.id)}
       />
 
-      <InfoTile icon="users" label="Audience attendance" value={String(event.audience_attendance || 0)} colors={colors} full />
+      <InfoTile icon="users" label="Audience attendance" value={String(audienceAttendanceCount)} colors={colors} full />
 
       <QRCard
         title="Audience Attendance QR"

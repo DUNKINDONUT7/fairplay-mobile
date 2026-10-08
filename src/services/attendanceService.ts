@@ -131,8 +131,17 @@ export async function checkInParticipant({
 // but attendee_type/role are 'audience' — attendee_type specifically is what
 // the web Attendance page groups rows by into its "Audience Attendance"
 // table; leaving it unset silently defaulted to 'participant' (confirmed
-// live via the Supabase table editor). Also bumps events.audience_attendance,
-// the same cached-counter pattern already used for events.participants.
+// live via the Supabase table editor).
+//
+// This used to also bump events.audience_attendance via a direct client
+// .update(), but that column can only be written by the event's owner (the
+// "Owners and admins can edit events" RLS policy on public.events) — an
+// anonymous audience member obviously isn't, so the update was silently
+// rejected every time (its result was never checked) and the column never
+// actually moved. The web Attendance page doesn't read that column anyway;
+// it counts attendance rows live (OrganizerAttendance.jsx filters by
+// attendeeType === 'audience'), so mobile's own "Audience attendance" tile
+// now does the same instead of writing to a column nothing real depends on.
 export async function checkInAudienceMember({ event, name }: { event: EventRow; name: string }): Promise<ActionResult> {
   if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
 
@@ -161,10 +170,9 @@ export async function checkInAudienceMember({ event, name }: { event: EventRow; 
     return { success: false, error: `Unable to record your attendance: ${error.message}` };
   }
 
-  await supabase
-    .from('events')
-    .update({ audience_attendance: (event.audience_attendance || 0) + 1 })
-    .eq('id', event.id);
-
   return { success: true };
+}
+
+export function countAudienceAttendance(attendanceRows: AttendanceRow[]): number {
+  return attendanceRows.filter((row) => row.attendee_type === 'audience').length;
 }

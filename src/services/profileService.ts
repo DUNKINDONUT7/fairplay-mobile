@@ -55,3 +55,20 @@ export async function updateOwnProfile(authUserId: string, updates: { full_name:
   if (error) return { success: false, error: 'Unable to update your profile. Please try again.' };
   return { success: true };
 }
+
+// Mirrors authStore.js's updateCredentials on web: Supabase Auth has no
+// direct "verify this password" call, so the current password is checked by
+// re-signing-in with it (this also refreshes the session) before calling
+// updateUser — otherwise anyone with a still-open session could change the
+// password without ever knowing the old one.
+export async function changePassword(email: string, currentPassword: string, newPassword: string): Promise<ActionResult> {
+  if (!supabase) return { success: false, error: 'Supabase is not configured yet.' };
+  if (!email) return { success: false, error: 'Unable to verify your account. Please sign in again.' };
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+  if (verifyError) return { success: false, error: 'Your current password is incorrect.' };
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { success: false, error: error.message || 'Unable to update your password. Please try again.' };
+  return { success: true };
+}

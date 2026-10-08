@@ -41,6 +41,7 @@ export function ParticipantHomeScreen({
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const tabBarHeight = 70 + insets.bottom;
 
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
   const [attendanceRows, setAttendanceRows] = useState<AttendanceRow[]>([]);
@@ -157,9 +158,6 @@ export function ParticipantHomeScreen({
       <View style={[styles.topBar, { paddingTop: insets.top + 16 }]}>
         <AppLogo width={97} />
         <View style={styles.topActions}>
-          <Pressable style={styles.iconButton} onPress={() => setShowProfile(true)} accessibilityRole="button" accessibilityLabel="My profile">
-            <Feather name="user" size={18} color={colors.textPrimary} />
-          </Pressable>
           <Pressable style={styles.iconButton} onPress={() => onSignOut?.()} accessibilityRole="button" accessibilityLabel="Sign out">
             <Feather name="log-out" size={18} color={colors.textPrimary} />
           </Pressable>
@@ -167,7 +165,7 @@ export function ParticipantHomeScreen({
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarHeight + insets.bottom + 40 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={colors.blue} />}
       >
@@ -177,30 +175,6 @@ export function ParticipantHomeScreen({
           <Text style={styles.heroSubtitle}>
             Events you've registered for, and events you can still join — synced live with the FairPlay web app.
           </Text>
-        </View>
-
-        <View style={styles.tabRow}>
-          {(
-            [
-              { key: 'events' as const, label: 'Events' },
-              { key: 'history' as const, label: 'History' },
-            ]
-          ).map((tab) => {
-            const active = homeTab === tab.key;
-            return (
-              <Pressable
-                key={tab.key}
-                onPress={() => setHomeTab(tab.key)}
-                style={[
-                  styles.tabChip,
-                  { borderColor: colors.border },
-                  active && { backgroundColor: colors.blueLight, borderColor: colors.borderActive },
-                ]}
-              >
-                <Text style={[styles.tabChipText, { color: active ? colors.blue : colors.textSecondary }]}>{tab.label}</Text>
-              </Pressable>
-            );
-          })}
         </View>
 
         {homeTab === 'events' ? (
@@ -370,6 +344,26 @@ export function ParticipantHomeScreen({
           </View>
         )}
       </ScrollView>
+
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom + 12 }]}>
+        {(
+          [
+            { key: 'events' as const, label: 'Events', icon: 'calendar' as const, onPress: () => setHomeTab('events') },
+            { key: 'history' as const, label: 'History', icon: 'clock' as const, onPress: () => setHomeTab('history') },
+            { key: 'profile' as const, label: 'Profile', icon: 'user' as const, onPress: () => setShowProfile(true) },
+          ]
+        ).map((tab) => {
+          const active = homeTab === tab.key;
+          return (
+            <Pressable key={tab.key} style={styles.tabItem} onPress={tab.onPress} accessibilityRole="button" accessibilityLabel={tab.label}>
+              <View style={[styles.tabIconWrap, active && styles.tabIconWrapActive]}>
+                <Feather name={tab.icon} size={17} color={active ? colors.white : colors.textSecondary} />
+              </View>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -410,20 +404,40 @@ const createStyles = (colors: ThemeColors) =>
       maxWidth: 600,
       alignSelf: 'center',
     },
-    tabRow: {
+    tabBar: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
       flexDirection: 'row',
-      gap: 8,
-      marginBottom: 18,
+      backgroundColor: colors.topBar,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      paddingTop: 8,
+      paddingHorizontal: 8,
     },
-    tabChip: {
-      borderWidth: 1,
-      borderRadius: radius.full,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
+    tabItem: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 4,
     },
-    tabChipText: {
-      fontSize: 12,
+    tabIconWrap: {
+      width: 34,
+      height: 34,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabIconWrapActive: {
+      backgroundColor: colors.blue,
+    },
+    tabLabel: {
+      color: colors.textMuted,
+      fontSize: 10,
       fontWeight: '700',
+    },
+    tabLabelActive: {
+      color: colors.textPrimary,
     },
     qrToggle: {
       flexDirection: 'row',

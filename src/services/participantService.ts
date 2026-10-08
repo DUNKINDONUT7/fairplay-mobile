@@ -112,6 +112,24 @@ export async function registerForEvent({
   // arbitrary mobile-only format.
   const qrToken = `participant-${registrationId}-${Math.random().toString(36).slice(2, 10)}`;
 
+  // Mirrors eventStore.js's addContestant: events.contestants can only be
+  // written through this RPC, not a plain client-side update — the "Owners
+  // and admins can edit events" RLS policy on public.events rejects a direct
+  // .update() from a participant who isn't the event's owner. That call
+  // used to fail silently (its result was never checked), so the
+  // registrations row below was created but the participant never actually
+  // landed in events.contestants — the exact thing the web Organizer's
+  // Participants view and the mobile roster both read from, so the sign-up
+  // looked successful on mobile but never appeared anywhere else.
+  const { error: contestantError } = await supabase.rpc('register_event_contestant', {
+    p_event_id: event.id,
+    p_contestant: { id: participantId, name: trimmedName, type: 'participant', email: trimmedEmail || undefined },
+  });
+
+  if (contestantError) {
+    return { success: false, error: contestantError.message || 'Unable to join the event roster. Please try again.' };
+  }
+
   const { error: insertError } = await supabase.from('registrations').insert({
     id: registrationId,
     event_id: event.id,
@@ -130,13 +148,18 @@ export async function registerForEvent({
 
   if (insertError) return { success: false, error: 'Unable to submit your registration. Please try again.' };
 
-  const contestants = Array.isArray(event.contestants) ? event.contestants : [];
-  const nextContestants = [...contestants, { id: participantId, name: trimmedName, type: 'participant', email: trimmedEmail }];
-
-  await supabase
-    .from('events')
-    .update({ contestants: nextContestants, participants: nextContestants.length })
-    .eq('id', event.id);
+  if (trimmedEmail) {
+    // Best-effort confirmation email — notify-registration-confirmed checks
+    // the caller's own session email against this one, so it can only ever
+    // confirm the signed-in user's own sign-up. A failure here (missing
+    // email secrets, function not deployed yet, etc.) must never undo an
+    // otherwise-successful registration.
+    supabase.functions
+      .invoke('notify-registration-confirmed', {
+        body: { eventId: event.id, participantName: trimmedName, email: trimmedEmail },
+      })
+      .catch(() => {});
+  }
 
   return { success: true };
 }

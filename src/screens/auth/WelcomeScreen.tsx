@@ -9,29 +9,6 @@ import type { ThemeColors } from '@/theme';
 import { eventDisplayDate } from '@/services/eventService';
 import type { EventRow } from '@/types/organizer';
 
-type FeatherIconName = keyof typeof Feather.glyphMap;
-
-const FEATURES: { icon: FeatherIconName; label: string; title: string; text: string }[] = [
-  {
-    icon: 'user-check',
-    label: 'Identity',
-    title: 'Verified user profile',
-    text: 'Each QR session is tied to a real FairPlay account for safer and clearer access.',
-  },
-  {
-    icon: 'maximize',
-    label: 'QR access',
-    title: 'Scan and enter fast',
-    text: 'Use the app to scan event QR codes and go straight to the correct judge, scorer, or participant dashboard.',
-  },
-  {
-    icon: 'globe',
-    label: 'Public view',
-    title: 'Browse events',
-    text: 'Check upcoming events and public schedules before you sign in or join a session.',
-  },
-];
-
 export function WelcomeScreen({
   events,
   onNavigateLogin,
@@ -103,19 +80,6 @@ export function WelcomeScreen({
               <Text style={styles.secondaryButtonText}>Create account</Text>
             </Pressable>
           </View>
-        </View>
-
-        <View style={styles.featureGrid}>
-          {FEATURES.map((feature) => (
-            <View key={feature.label} style={styles.featureCard}>
-              <View style={styles.featureIconWrap}>
-                <Feather name={feature.icon} size={16} color={colors.blue} />
-              </View>
-              <Text style={styles.featureLabel}>{feature.label}</Text>
-              <Text style={styles.featureTitle}>{feature.title}</Text>
-              <Text style={styles.featureText}>{feature.text}</Text>
-            </View>
-          ))}
         </View>
 
         <View style={styles.sectionWrap}>
@@ -250,45 +214,6 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textPrimary,
       fontSize: 15,
       fontWeight: '700',
-    },
-    featureGrid: {
-      gap: 10,
-      marginBottom: 18,
-    },
-    featureCard: {
-      backgroundColor: colors.surface,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 16,
-    },
-    featureIconWrap: {
-      width: 30,
-      height: 30,
-      borderRadius: radius.sm,
-      backgroundColor: colors.blueLight,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 10,
-    },
-    featureLabel: {
-      color: colors.blue,
-      fontSize: 10,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
-      marginBottom: 4,
-    },
-    featureTitle: {
-      color: colors.textPrimary,
-      fontSize: 15,
-      fontWeight: '700',
-      marginBottom: 4,
-    },
-    featureText: {
-      color: colors.textSecondary,
-      fontSize: 13,
-      lineHeight: 18,
     },
     sectionWrap: {
       marginBottom: 18,
