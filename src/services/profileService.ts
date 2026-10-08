@@ -42,6 +42,20 @@ export async function ensureParticipantProfile(authUserId: string, email: string
   }
 }
 
+// Used to gate the forgot-password flow: only an email that actually has a
+// FairPlay account should be able to trigger a reset link. profiles has a
+// public "Allow profile list for demo dashboards" read policy (to anon,
+// using true — not dropped by the later ownership lockdown, unlike the
+// matching write policy), so this works even for a signed-out caller.
+export async function emailHasAccount(email: string): Promise<boolean> {
+  if (!supabase) return false;
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed) return false;
+
+  const { data } = await supabase.from('profiles').select('id').ilike('email', trimmed).limit(1).maybeSingle();
+  return Boolean(data);
+}
+
 type ActionResult = { success: boolean; error?: string };
 
 // Writes to the same `profiles` row the web app reads for its own account

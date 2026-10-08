@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { AuthContainer } from '@/components/auth/AuthContainer';
@@ -6,9 +6,10 @@ import { AuthHeader } from '@/components/auth/AuthHeader';
 import { FormField } from '@/components/auth/FormField';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import type { ThemeColors } from '@/theme';
 import { radius } from '@/theme';
 import { friendlyAuthError } from '@/utils/authErrors';
-import { isValidEmail, MIN_PASSWORD_LENGTH } from '@/utils/validation';
+import { getPasswordStrength, isValidEmail, PASSWORD_CHANGE_MIN_LENGTH } from '@/utils/validation';
 
 type AuthResult = { success: boolean; error?: string; message?: string };
 
@@ -42,6 +43,8 @@ export function RegisterScreen({
   const [formMessage, setFormMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
+  const strength = useMemo(() => getPasswordStrength(password), [password]);
+
   const validate = () => {
     const nextErrors: RegisterErrors = {};
     if (!fullName.trim()) nextErrors.fullName = 'Full name is required.';
@@ -54,8 +57,8 @@ export function RegisterScreen({
 
     if (!password) {
       nextErrors.password = 'Password is required.';
-    } else if (password.length < MIN_PASSWORD_LENGTH) {
-      nextErrors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+    } else if (!strength.meetsAllChecks) {
+      nextErrors.password = `Password must be at least ${PASSWORD_CHANGE_MIN_LENGTH} characters and include an uppercase letter, a lowercase letter, and a number.`;
     }
 
     if (!confirmPassword) {
@@ -156,11 +159,30 @@ export function RegisterScreen({
           if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
         }}
         error={errors.password}
-        hint={`Must be at least ${MIN_PASSWORD_LENGTH} characters.`}
+        hint={errors.password ? undefined : `At least ${PASSWORD_CHANGE_MIN_LENGTH} characters, with uppercase, lowercase, and a number.`}
         placeholder="••••••••"
         autoComplete="password-new"
         returnKeyType="next"
       />
+
+      {password ? (
+        <View style={styles.strengthWrap}>
+          <View style={styles.strengthHeader}>
+            <Text style={[styles.strengthLabel, { color: colors.textSecondary }]}>Password strength</Text>
+            <Text style={[styles.strengthValue, { color: colors[strength.color] }]}>{strength.label}</Text>
+          </View>
+          <View style={[styles.strengthTrack, { backgroundColor: colors.border }]}>
+            <View style={[styles.strengthFill, { width: `${strength.percent}%`, backgroundColor: colors[strength.color] }]} />
+          </View>
+
+          <View style={styles.checksGrid}>
+            <PasswordCheckRow label="8+ characters" met={strength.checks.length} colors={colors} />
+            <PasswordCheckRow label="Uppercase letter" met={strength.checks.uppercase} colors={colors} />
+            <PasswordCheckRow label="Lowercase letter" met={strength.checks.lowercase} colors={colors} />
+            <PasswordCheckRow label="Number" met={strength.checks.number} colors={colors} />
+          </View>
+        </View>
+      ) : null}
 
       <PasswordInput
         label="Confirm Password"
@@ -198,6 +220,15 @@ export function RegisterScreen({
         </Pressable>
       </View>
     </AuthContainer>
+  );
+}
+
+function PasswordCheckRow({ label, met, colors }: { label: string; met: boolean; colors: ThemeColors }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, width: '50%', marginTop: 8 }}>
+      <Feather name={met ? 'check-circle' : 'circle'} size={13} color={met ? colors.green : colors.textMuted} />
+      <Text style={{ color: met ? colors.textPrimary : colors.textMuted, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+    </View>
   );
 }
 
@@ -243,5 +274,36 @@ const styles = StyleSheet.create({
   switchLink: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  strengthWrap: {
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  strengthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  strengthLabel: {
+    fontSize: 12,
+  },
+  strengthValue: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  strengthTrack: {
+    height: 6,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  strengthFill: {
+    height: '100%',
+    borderRadius: radius.full,
+  },
+  checksGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 2,
   },
 });

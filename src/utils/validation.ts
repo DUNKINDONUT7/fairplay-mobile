@@ -4,13 +4,10 @@ export function isValidEmail(value: string): boolean {
   return EMAIL_REGEX.test(value.trim());
 }
 
-// Matches Supabase Auth's default minimum password length.
-export const MIN_PASSWORD_LENGTH = 6;
-
 // Same 8-char/upper/lower/number rule the web app's account settings page
 // enforces for a password change (AccountCredentialsCard.jsx's
-// passwordProblem) — kept separate from MIN_PASSWORD_LENGTH above, which is
-// only for sign-up and intentionally looser.
+// passwordProblem) — applied here to every password a user sets (sign-up
+// and change-password alike), not just the change-password screen.
 export const PASSWORD_CHANGE_MIN_LENGTH = 8;
 
 export type PasswordChecks = {

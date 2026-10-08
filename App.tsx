@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MobileShell, type MobileDashboard } from '@/components/layout/MobileShell';
 import { isSupabaseConfigured, supabase } from '@/config/supabase';
 import { fetchMobileData, subscribeToFairplayRealtime } from '@/services/fairplayApi';
-import { ensureParticipantProfile, fetchOwnProfile, type ProfileRow } from '@/services/profileService';
+import { emailHasAccount, ensureParticipantProfile, fetchOwnProfile, type ProfileRow } from '@/services/profileService';
 import { buildAppUrl } from '@/services/qrService';
 import { useLiveRefresh } from '@/utils/liveRefresh';
 import type { EventRow } from '@/types/organizer';
@@ -136,6 +136,20 @@ function AppContent() {
       return {
         success: false,
         error: 'Supabase auth is not configured yet.',
+      };
+    }
+
+    // Supabase's resetPasswordForEmail always reports success regardless of
+    // whether the email has an account, by design (it avoids leaking which
+    // emails are registered). FairPlay wants the opposite here — only a real
+    // account should ever get a reset link — so existence is checked first
+    // against profiles, which this app already treats as the source of
+    // truth for "does this email have a FairPlay account."
+    const hasAccount = await emailHasAccount(email);
+    if (!hasAccount) {
+      return {
+        success: false,
+        error: 'No FairPlay account was found with that email address.',
       };
     }
 
